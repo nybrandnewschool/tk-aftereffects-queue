@@ -1,7 +1,9 @@
 # AEQueue - tk-aftereffects-queue
 An After Effects render queue for ShotGrid Toolkit.
 
-preview here...
+<p align="center">
+    <img src="https://raw.github.com/nybrandnewschool/tk-aftereffects-queue/master/res/aequeue_demo.gif"/>
+</p>
 
 ## Features
 - Render multiple comps to locations defined by templates in your Toolkit config.
