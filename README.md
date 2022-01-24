@@ -1,4 +1,4 @@
-# AEQueue - tk-aftereffects-queue
+# AEQueue
 An After Effects render queue for ShotGrid Toolkit.
 
 <p align="center">
