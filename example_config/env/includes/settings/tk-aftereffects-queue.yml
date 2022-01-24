@@ -1,0 +1,25 @@
+# Add this file to your settings folder.
+includes:
+- ../app_locations.yml
+
+
+settings.tk-aftereffects-queue.shot_step:
+  command_name: Render Queue...
+  template_work_file: aftereffects_shot_work
+  template_render_area: aftereffects_shot_renders
+  template_review_area: aftereffects_shot_review
+  copy_to_review_area: True
+  default_output_module:
+    - 'Lossless with Alpha'
+  location: '@apps.tk-aftereffects-queue.location'
+
+
+settings.tk-aftereffects-queue.asset_step:
+  command_name: Render Queue...
+  template_work_file: aftereffects_asset_work
+  template_render_area: aftereffects_asset_renders
+  template_review_area: aftereffects_asset_review
+  copy_to_review_area: True
+  default_output_module:
+    - 'Lossless with Alpha'
+  location: '@apps.tk-aftereffects-queue.location'

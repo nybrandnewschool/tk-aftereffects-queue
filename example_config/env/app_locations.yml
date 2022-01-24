@@ -1,0 +1,7 @@
+
+# Add this to your app_locations.yml
+apps.tk-aftereffects-queue.location:
+  type: github_release
+  organization: nybrandnewschool
+  repository: tk-aftereffects-queue
+  version: v0.1.0

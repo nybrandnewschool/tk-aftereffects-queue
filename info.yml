@@ -1,0 +1,57 @@
+# Copyright (c) 2013 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+
+# Metadata defining the behaviour and requirements for this engine
+
+# expected fields in the configuration file for this engine
+display_name: "AEQueue"
+description: "Render and encode AE comps for publishing and review."
+configuration:
+  template_render_area:
+    type: str
+    default_value: ae_shot_renders
+    description: A template which locates the root folder for comp renders.
+                 This is the folder where renders will be written to and
+                 publishes will be generated pointing to those renders.
+    allows_empty: False
+  template_review_area:
+    type: str
+    default_value: ae_shot_review
+    description: Template pointing to a review folder. All encoded renders
+                 will be copied into this folder before uploading to SG for
+                 review.
+    allows_empty: False
+  copy_to_review_area:
+    type: bool
+    default_value: True
+    description: A flag that determines whether or not Encoded renders will
+                 be copied to the template_review_area before uploading to
+                 SG for review.
+  command_name:
+    type: str
+    default_value: Render Queue...
+    description: The name of the command as displayed in the Adobe Panel.
+  default_output_module:
+    type: list
+    values:
+      type: str
+    default_value: ['Lossless with Alpha']
+    description: A list of default output modules in order of preference. The first
+                 existing output module will be used as the default in the RQ UI.
+
+
+# Requirements
+supported_engines:
+requires_shotgun_fields:
+requires_shotgun_version:
+requires_core_version: "v0.19.18"
+requires_engine_version:
+frameworks:
+  - {"name": "tk-framework-adobe", "version": "v1.x.x"}
