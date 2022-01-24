@@ -42,3 +42,6 @@ venv/
 # Temp files
 tmp.py
 tmp/
+
+# Video files
+*.avi
