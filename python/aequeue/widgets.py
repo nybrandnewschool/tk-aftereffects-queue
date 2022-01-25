@@ -641,6 +641,8 @@ class RenderQueue(QtWidgets.QListWidget):
             background: transparent;
         }
     ''')
+    drop = QtCore.Signal(object)
+    drag = QtCore.Signal(object)
 
     def __init__(self, parent=None):
         super(RenderQueue, self).__init__(parent)
@@ -649,7 +651,17 @@ class RenderQueue(QtWidgets.QListWidget):
         self.setSizeAdjustPolicy(self.AdjustToContents)
         self.setStyleSheet(self.css)
         self.verticalScrollBar().setStyle(QtWidgets.QCommonStyle())
+        self.setAcceptDrops(True)
         self.installEventFilter(self)
+
+    def dragMoveEvent(self, event):
+        event.acceptProposedAction()
+
+    def dragEnterEvent(self, event):
+        self.drag.emit(event)
+
+    def dropEvent(self, event):
+        self.drop.emit(event)
 
     def eventFilter(self, source, event):
         if source == self.verticalScrollBar():
@@ -684,6 +696,7 @@ class RenderQueue(QtWidgets.QListWidget):
         item = QtWidgets.QListWidgetItem()
         item.label = label
         item.widget = RenderQueueItemWidget(label, status, percent)
+        item.widget.set_margin_for_scrollbar_state(self.property('scroll'))
         item.setSizeHint(item.widget.sizeHint())
         self.items[label] = item
         self.addItem(item)

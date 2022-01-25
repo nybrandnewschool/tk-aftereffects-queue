@@ -3,6 +3,7 @@ import os
 import sys
 import re
 import threading
+import xml.etree.ElementTree as xmlElementTree
 from contextlib import contextmanager
 
 
@@ -16,6 +17,7 @@ class AfterEffectsEngineWrapper(object):
         'File Name',
         'File Template',
     ]
+    ae_mime_format = 'application/x-qt-windows-mime;value="dynamiclinksourcelist"'
 
     def __init__(self, engine):
         self._engine = engine
@@ -31,6 +33,37 @@ class AfterEffectsEngineWrapper(object):
     @property
     def adobe(self):
         return self._engine.adobe
+
+    def has_dynamic_links(self, mimeData):
+        return mimeData.hasFormat(self.ae_mime_format)
+
+    def get_dynamic_links(self, mimeData):
+        dynamic_links_data = mimeData.data(self.ae_mime_format).data()
+        dynamic_links = dynamic_links_data.decode('utf-8', 'ignore')
+        results = []
+        tree = xmlElementTree.fromstring(dynamic_links)
+        for source in tree.findall('.//Source'):
+            link = {}
+            for child in source:
+                link[child.tag] = child.text
+            results.append(link)
+        return results
+
+    def walk_items(self, item_collection=None):
+        item_collection = item_collection or self.adobe.app.project.items
+        for item in self.iter_collection(item_collection):
+            if item['instanceof'] == 'FolderItem':
+                yield item
+                for item in self.walk_items(item):
+                    yield item
+            else:
+                yield item
+
+    def get_items_from_dynamic_links(self, links):
+        link_ids = [link['ID'] for link in links]
+        for item in self.walk_items():
+            if item.dynamicLinkGUID in link_ids:
+                yield item
 
     def get_aerender_executable(self):
         application_templates = {

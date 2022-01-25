@@ -3,12 +3,13 @@ import os
 import subprocess
 import sys
 import webbrowser
+from queue import Queue
 
 # Local imports
 from . import const, resources, ae, paths
 from .options import RenderOptions
 from .widgets import Window, Menu
-from .tasks.core import LogFormatter, Runner, Flow
+from .tasks.core import LogFormatter, Runner, Flow, call_in_main
 from .tasks.aerender import AERenderComp, BackgroundAERenderComp
 from .tasks.encode import EncodeMP4, EncodeGIF
 from .tasks.copy import Copy
@@ -25,6 +26,7 @@ class Application(QtCore.QObject):
         self.log = tk_app.logger
         self.engine = ae.AfterEffectsEngineWrapper(tk_app.engine)
         self.host_version = '20' + self.tk_app.engine.host_info['version'].split('.')[0]
+        self.delay = DelayedQueue(self.log, self)
 
         self.items = []
         self.runner = None
@@ -34,6 +36,8 @@ class Application(QtCore.QObject):
         self.ui.queue_button.clicked.connect(self.load_queue)
         self.ui.queue.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.ui.queue.customContextMenuRequested.connect(self.show_context_menu)
+        self.ui.queue.drag.connect(self.drag_queue)
+        self.ui.queue.drop.connect(self.drop_queue)
         self.ui.render.clicked.connect(self.render)
         self.ui.closeEvent = self.closeEvent
         self.load_options()
@@ -67,6 +71,7 @@ class Application(QtCore.QObject):
     def reset(self):
         self.log.debug('Resetting Render Queue.')
         self.ui.queue.clear()
+        self.items[:] = []
         self.runner = None
         self.set_render_status(const.Waiting)
 
@@ -80,6 +85,19 @@ class Application(QtCore.QObject):
         default_module = self.tk_app.get_default_output_module(existing_output_modules)
         if default_module:
             self.ui.options.module.setCurrentText(default_module)
+
+    def drag_queue(self, event):
+        self.log.debug('DRAG EVENT')
+        if self.engine.has_dynamic_links(event.mimeData()):
+            self.log.debug('ACCEPTING DRAG EVENT')
+            event.acceptProposedAction()
+
+    def drop_queue(self, event):
+        self.log.debug('DROP EVENT')
+        dynamic_links = self.engine.get_dynamic_links(event.mimeData())
+        if dynamic_links:
+            self.delay(self.add_queue_dynamic_links, dynamic_links)
+        event.acceptProposedAction()
 
     def load_queue(self):
         self.reset()
@@ -104,6 +122,13 @@ class Application(QtCore.QObject):
             if comp_item['name'] == item:
                 self.items.remove(comp_item)
         self.ui.queue.remove_item(item)
+
+    def add_queue_dynamic_links(self, dynamic_links):
+        queued = [i['name'] for i in self.items]
+        for item in self.engine.get_items_from_dynamic_links(dynamic_links):
+            if item.data['instanceof'] == 'CompItem' and item['name'] not in queued:
+                self.items.append(item)
+                self.ui.queue.add_item(item['name'])
 
     def show_context_menu(self, point):
         # Get selected item
@@ -385,6 +410,7 @@ class Application(QtCore.QObject):
     def set_render_status(self, status):
         self.log.debug('Render status changed to %s...', status)
         if status == const.Waiting:
+            self.ui.options_header.label.setText('OPTIONS')
             self.ui.options.setEnabled(True)
             self.ui.render.setEnabled(True)
             self.ui.queue_button.setVisible(True)
@@ -416,3 +442,31 @@ class Application(QtCore.QObject):
                 self.ui.show_error("Failed to render...", 3000)
             else:
                 self.ui.show_info("Success!", 3000)
+
+
+class DelayedQueue(QtCore.QObject):
+
+    def __init__(self, log, parent=None):
+        super(DelayedQueue, self).__init__(parent=parent)
+
+        self.log = log
+        self.queue = Queue()
+        self._timer = QtCore.QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(200)
+        self._timer.timeout.connect(self.process_queue)
+
+    def __call__(self, func, *args, **kwargs):
+        self.log.debug('Delaying execution of: %s(*%s, **%s)' % (func, args, kwargs))
+        self.queue.put((func, args, kwargs))
+        if not self._timer.isActive():
+            self._timer.start()
+
+    def process_queue(self):
+        while not self.queue.empty():
+            func, args, kwargs = self.queue.get()
+            self.log.debug('Executing: %s(*%s, **%s)' % (func, args, kwargs))
+            try:
+                func(*args, **kwargs)
+            except Exception:
+                self.log.exception('Failed to execute...')
