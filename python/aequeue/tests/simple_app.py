@@ -1,8 +1,7 @@
 from math import floor
 from random import uniform
-import xml.etree.ElementTree as xmlElementTree
 
-from ..vendor.Qt import QtWidgets, QtCore
+from ..vendor.Qt import QtCore
 
 from .. import const, resources
 from ..widgets import Window
@@ -122,44 +121,10 @@ class TestApplication(QtCore.QObject):
         # Create UI
         self.ui = Window()
         self.ui.queue_button.clicked.connect(self.load_queue)
-        self.ui.queue.drag.connect(self.drag_queue)
-        self.ui.queue.drop.connect(self.drop_queue)
         self.ui.render.clicked.connect(self.render)
 
     def show(self):
         self.ui.show()
-
-    def drag_queue(self, event):
-        data = {
-            'action': event.proposedAction(),
-            'formats': event.mimeData().formats(),
-            'hasColor': event.mimeData().hasColor(),
-            'hasHtml': event.mimeData().hasHtml(),
-            'hasImage': event.mimeData().hasImage(),
-            'hasText': event.mimeData().hasText(),
-            'hasUrls': event.mimeData().hasUrls(),
-            'html': event.mimeData().html(),
-            'text': event.mimeData().text(),
-            'color': event.mimeData().colorData(),
-            'imageData': event.mimeData().imageData(),
-            'urls': event.mimeData().urls(),
-        }
-        format_data = {
-            format: event.mimeData().data(format).data().decode('utf-8', 'ignore')
-            for format in event.mimeData().formats()
-        }
-        print('Received drag event...\n')
-        print('\n'.join([f'{k}: {v}' for k, v in data.items()]))
-        print('\n'.join([f'{k}: {v}' for k, v in format_data.items()]))
-        print('HAS AE DYNAMIC LINKS: %s' % has_dynamic_links(event.mimeData()))
-        print('LINKS: %s' % get_dynamic_links(event.mimeData()))
-        event.acceptProposedAction()
-
-    def drop_queue(self, event):
-        dynamic_links = get_dynamic_links(event.mimeData())
-        for link in dynamic_links:
-            self.ui.queue.add_item(link['ID'])
-        event.acceptProposedAction()
 
     def load_queue(self):
         self.ui.queue.clear()
@@ -210,21 +175,3 @@ class TestApplication(QtCore.QObject):
 
             movie = resources.get_path(status.title() + '.gif')
             self.ui.render.add_movie_to_queue(movie)
-
-
-ae_mime_format = 'application/x-qt-windows-mime;value="dynamiclinksourcelist"'
-
-def has_dynamic_links(mimeData):
-    return mimeData.hasFormat(ae_mime_format)
-
-def get_dynamic_links(mimeData):
-    dynamic_links_data = mimeData.data(ae_mime_format).data()
-    dynamic_links = dynamic_links_data.decode('utf-8', 'ignore')
-    results = []
-    tree = xmlElementTree.fromstring(dynamic_links)
-    for source in tree.findall('.//Source'):
-        link = {}
-        for child in source:
-            link[child.tag] = child.text
-        results.append(link)
-    return results
