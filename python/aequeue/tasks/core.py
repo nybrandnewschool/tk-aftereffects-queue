@@ -2,6 +2,7 @@ import logging
 import sys
 import time
 import threading
+import traceback
 import uuid
 from collections import defaultdict, deque
 from queue import Queue
@@ -18,6 +19,7 @@ __all__ = [
     'fit100',
     'Flow',
     'generate_report',
+    'generate_html_report',
     'LogFormatter',
     'LogStreamReporter',
     'Runner',
@@ -226,8 +228,8 @@ class Task(QtCore.QRunnable):
             self.set_status(const.Success)
         except Exception:
             self.error = sys.exc_info()
+            self.log.exception('Task failed to execute...')
             self.set_status(const.Failed)
-            raise
 
     def execute(self):
         return NotImplemented
@@ -551,19 +553,65 @@ def generate_report(runner):
 
     formatters = {
         'flow': LogFormatter(
-            '    %(flow_step)s - %(flow_progress)3d%% %(message)s'
+            '  %(flow_step)s [%(flow_progress)3d%%] %(message)s'
         ),
         'task': LogFormatter(
-            '      - %(task_status)s - %(task_progress)3d%% %(message)s'
+            '    %(task_status)s [%(task_progress)3d%%] %(message)s'
         ),
     }
 
     report = []
-    report.append(runner.name)
     for flow in runner.flows:
-        report.append('  ' + flow.name)
+        report.append(f'{flow.name}')
         for record in flow.log_records:
-            report.append(formatters[record.type].format(record))
+            if record.exc_info:
+                # Temporarily modify record so we can nicely format the exception...
+                einfo, etext, stk = record.exc_info, record.exc_text, record.stack_info
+                record.exc_info = record.exc_text = record.stack_info = None
+                record.message = str(einfo[1])
+
+                formatted_exc = ''.join(traceback.format_tb(einfo[2]))
+                report.append(formatters[record.type].format(record))
+                report.append(f'\n{formatted_exc}\n')
+
+                # Restore record
+                record.exc_info, record.exc_text, record.stack_info = einfo, etext, stk
+            else:
+                report.append(formatters[record.type].format(record))
+    return '\n'.join(report)
+
+
+def generate_html_report(runner):
+    '''Generate a well formatted html report for a Runner.'''
+
+    formatters = {
+        'flow': LogFormatter(
+            '<pre style="margin: 0px;">  <em>%(flow_step)s</em> [%(flow_progress)3d%%] %(message)s</pre>'
+        ),
+        'task': LogFormatter(
+            '<pre style="margin: 0px;">    <em>%(task_status)s</em> [%(task_progress)3d%%] %(message)s</pre>'
+        ),
+    }
+
+    report = ['<pre style="line-height:5%;">  <div>']
+    for flow in runner.flows:
+        report.append(f'<pre style="font-family: Roboto; font-size: 14px;color: #DDDDDD;">  {flow.name}</pre>')
+        for record in flow.log_records:
+            if record.exc_info:
+                # Temporarily modify record so we can nicely format the exception...
+                einfo, etext, stk = record.exc_info, record.exc_text, record.stack_info
+                record.exc_info = record.exc_text = record.stack_info = None
+                record.message = str(einfo[1])
+
+                formatted_exc = ''.join(traceback.format_tb(einfo[2]))
+                report.append(formatters[record.type].format(record))
+                report.append(f'<pre style="color: #EB5757;">{formatted_exc}</pre>')
+
+                # Restore record
+                record.exc_info, record.exc_text, record.stack_info = einfo, etext, stk
+            else:
+                report.append(formatters[record.type].format(record))
+
     return '\n'.join(report)
 
 
