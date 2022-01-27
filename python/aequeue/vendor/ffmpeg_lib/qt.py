@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 # Standard library imports
 import os
 
@@ -8,7 +6,7 @@ import os
 from . import icon, watch
 
 # Third party imports
-from Qt import QtCore, QtWidgets, QtGui
+from ..Qt import QtCore, QtWidgets, QtGui
 
 
 class FfmpegErrorDialog(QtWidgets.QDialog):

@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import print_function
-import subprocess
+# Standard library imports
 import argparse
 import tempfile
-import io
 
-import ffmpeg_lib
+# Local imports
+from . import ffmpeg_lib
 
 
 def get_palette_path(fn):

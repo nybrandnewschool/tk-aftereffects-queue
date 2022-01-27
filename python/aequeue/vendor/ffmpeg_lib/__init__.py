@@ -5,8 +5,6 @@ Small ffmpeg library to facilitate progress reporting.
 
 '''
 
-from __future__ import print_function, division
-
 # Standard library imports
 import glob
 import io
