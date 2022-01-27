@@ -34,3 +34,11 @@ class FunctionTask(Task):
 
     def execute(self):
         return self.func(*self.func_args, **self.func_kwargs)
+
+
+class ErrorTask(Task):
+
+    def execute(self):
+        for i in range(5):
+            time.sleep(0.1)
+        raise RuntimeError('TASK RAISED AN ERROR!!!')
