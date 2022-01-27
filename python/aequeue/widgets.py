@@ -723,6 +723,77 @@ class RenderQueue(QtWidgets.QListWidget):
         item.widget.menu.hide()
 
 
+class LogReport(QtWidgets.QTextEdit):
+
+    css = Theme.StyleSheet('''
+        QTextEdit {
+            $p;
+            $border;
+            background: $dark;
+            color: $light;
+            padding-left: 6px;
+        }
+        QAbstractScrollArea {
+            background: $dark;
+            border: 0;
+            padding-right: 0px;
+        }
+        QScrollBar:vertical {
+            background: $dark;
+            width: 10px;
+            margin: 0;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 1px;
+            padding-right: 4px;
+        }
+
+        QScrollBar::handle:vertical {
+            background: $surface_highlight;
+        }
+
+        QScrollBar::handle:vertical:hover {
+            background: $on_surface;
+        }
+
+        QScrollBar::add-line:vertical {
+            background: transparent;
+            width: 1px;
+            left: 4px;
+            top: 20px;
+            bottom: 20px;
+            subcontrol-origin: paddding;
+            subcontrol-position: top;
+        }
+
+        QScrollBar::sub-line:vertical {
+            background: transparent;
+            width: 1px;
+            left: 4px;
+            top: 20px;
+            bottom: 20px;
+            subcontrol-origin: padding;
+            subcontrol-position: bottom;
+        }
+
+        QScrollBar::top-arrow:vertical, QScrollBar::bottom-arrow:vertical {
+            background: transparent;
+        }
+
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: transparent;
+        }
+    ''')
+
+    def __init__(self, parent=None):
+        super(LogReport, self).__init__(parent=parent)
+        self.setStyleSheet(self.css)
+        self.verticalScrollBar().setStyle(QtWidgets.QCommonStyle())
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setLineWrapMode(self.NoWrap)
+        self.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
+
+
 class Label(QtWidgets.QLabel):
 
     css = Theme.StyleSheet('''
