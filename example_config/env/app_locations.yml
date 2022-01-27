@@ -4,4 +4,4 @@ apps.tk-aftereffects-queue.location:
   type: github_release
   organization: nybrandnewschool
   repository: tk-aftereffects-queue
-  version: v0.1.0
+  version: v0.2.0

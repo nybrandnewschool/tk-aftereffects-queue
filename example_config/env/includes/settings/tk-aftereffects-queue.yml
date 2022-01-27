@@ -11,6 +11,9 @@ settings.tk-aftereffects-queue.shot_step:
   copy_to_review_area: True
   default_output_module:
     - 'Lossless with Alpha'
+  send_report_hook: '{self}/ticket_send_report_hook.py'
+  send_report_settings:
+    default_assignee: {'type': 'Group', 'id': 10}
   location: '@apps.tk-aftereffects-queue.location'
 
 
@@ -22,4 +25,7 @@ settings.tk-aftereffects-queue.asset_step:
   copy_to_review_area: True
   default_output_module:
     - 'Lossless with Alpha'
+  send_report_hook: '{self}/ticket_send_report_hook.py'
+  send_report_settings:
+    default_assignee: {'type': 'Group', 'id': 10}
   location: '@apps.tk-aftereffects-queue.location'
