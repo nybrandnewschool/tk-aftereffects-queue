@@ -53,7 +53,7 @@ class AERenderComp(SyncTask):
         if not success:
             raise AERenderFailed('Failed to render queue item: %s' % self.comp)
 
-        self.set_status(const.Running, 95)
+        self.set_status(const.Running, 100)
         return self.output_path
 
 
