@@ -98,28 +98,124 @@ class SectionHeader(QtWidgets.QWidget):
             $h1;
             color: $light;
         }
+        QLabel[status="default"]{
+            $h1;
+            color: $queued;
+        }
+        QLabel[status="queued"]{
+            $h1;
+            color: $queued;
+        }
+        QLabel[status="rendering"]{
+            $h1;
+            color: $rendering;
+        }
+        QLabel[status="encoding"]{
+            $h1;
+            color: $encoding;
+        }
+        QLabel[status="copying"]{
+            $h1;
+            color: $copying;
+        }
+        QLabel[status="uploading"]{
+            $h1;
+            color: $uploading;
+        }
+        QLabel[status="done"]{
+            $h1;
+            font-weight: bold;
+            color: $done;
+        }
+        QLabel[status="failed"]{
+            $h1;
+            font-weight: bold;
+            color: $failed;
+        }
+        QLabel[status="success"]{
+            $h1;
+            font-weight: bold;
+            color: $success;
+        }
     ''')
 
-    def __init__(self, label, button=None, parent=None):
+    def __init__(self, label, parent=None):
         super(SectionHeader, self).__init__(parent)
 
-        self.label = QtWidgets.QLabel(label)
+        self.left = QtWidgets.QHBoxLayout()
+        self.left.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.left.setContentsMargins(0, 0, 0, 0)
+        self.left.setSpacing(4)
+        self.center = QtWidgets.QHBoxLayout()
+        self.center.setAlignment(QtCore.Qt.AlignCenter)
+        self.center.setContentsMargins(0, 0, 0, 0)
+        self.center.setSpacing(4)
+        self.right = QtWidgets.QHBoxLayout()
+        self.right.setDirection(QtWidgets.QBoxLayout.RightToLeft)
+        self.right.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.right.setContentsMargins(0, 0, 0, 0)
+        self.right.setSpacing(4)
 
         self.layout = QtWidgets.QHBoxLayout()
         self.layout.setAlignment(QtCore.Qt.AlignVCenter)
         self.layout.setContentsMargins(20, 0, 20, 0)
-        self.layout.setSpacing(0)
+        self.layout.setSpacing(20)
+        self.layout.addLayout(self.left)
+        self.layout.addLayout(self.center)
+        self.layout.addLayout(self.right)
+        self.layout.setStretch(1, 1)
 
-        self.layout.addWidget(self.label)
-        self.layout.addStretch()
-
-        if button:
-            self.layout.addWidget(button)
+        self.label = QtWidgets.QLabel(label)
+        self.left.addWidget(self.label)
 
         self.setFixedHeight(46)
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
+
+    def set_status(self, status):
+        self.setProperty('status', status)
+        self.label.setProperty('status', status)
+        self.setStyleSheet(self.css)
+
+    def set_label(self, text):
+        self.label.setText(text)
+
+    def transition_label(self, text):
+        if text == self.label.text():
+            return
+        self.start_fade()
+        anim = self.label_fade_out()
+        anim.finished.connect(lambda: self.label.setText(text))
+        anim.finished.connect(self.label_fade_in)
+
+    def start_fade(self):
+        self._anim_effect = QtWidgets.QGraphicsOpacityEffect(self.label)
+        self._anim_effect.setOpacity(1.0)
+        self.label.setGraphicsEffect(self._anim_effect)
+
+    def finish_fade(self):
+        self.label.setGraphicsEffect(None)
+
+    def label_fade_out(self):
+        self.start_fade()
+        self._anim = QtCore.QPropertyAnimation(self._anim_effect, b'opacity')
+        self._anim.setDuration(100)
+        self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._anim.setStartValue(1.0)
+        self._anim.setEndValue(0.0)
+        self._anim.start()
+        return self._anim
+
+    def label_fade_in(self):
+        self._anim = QtCore.QPropertyAnimation(self._anim_effect, b'opacity')
+        self._anim.setDuration(200)
+        self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._anim.setStartValue(0.0)
+        self._anim.setEndValue(1.0)
+        self._anim.finished.connect(self.finish_fade)
+        self._anim.start()
+        return self._anim
 
 
 class Tool(QtWidgets.QToolButton):
@@ -149,6 +245,10 @@ class Tool(QtWidgets.QToolButton):
         self.setIcon(QtGui.QIcon(icon))
         self.setIconSize(QtCore.QSize(20, 20))
         self.setStyleSheet(self.css)
+
+    def set_icon(self, icon):
+        self.setIcon(QtGui.QIcon(icon))
+        self.setIconSize(QtCore.QSize(20, 20))
 
 
 class CheckBox(QtWidgets.QCheckBox):
@@ -907,6 +1007,16 @@ class Options(QtWidgets.QWidget):
                     % (k, v, type(control))
                 )
 
+    def set_height(self, height):
+        self._anim = ValueAnimation(self)
+        self._anim.setDuration(200)
+        self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._anim.setStartValue(self.height())
+        self._anim.setEndValue(height)
+        self._anim.value_changed.connect(self.setFixedHeight)
+        self._anim.start()
+
+
 class Movie(QtWidgets.QLabel):
     '''Generic Movie class, supports playback of gifs and other media.'''
 
@@ -1032,6 +1142,16 @@ class Footer(QtWidgets.QWidget):
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
+        self._anim = None
+
+    def set_height(self, height):
+        self._anim = ValueAnimation(self)
+        self._anim.setDuration(200)
+        self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._anim.setStartValue(self.height())
+        self._anim.setEndValue(height)
+        self._anim.value_changed.connect(self.setFixedHeight)
+        self._anim.start()
 
 
 class Toast(QtWidgets.QWidget):
@@ -1144,41 +1264,72 @@ class Window(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
 
-        self.queue = RenderQueue()
+        # Header
+        self.reset_button = Tool(resources.get_path('arrow_counterclockwise.png'))
+        self.reset_button.setToolTip('Reset queue.')
+        self.reset_button.setVisible(False)
         self.queue_button = Tool(resources.get_path('arrow_download.png'))
-        self.queue_header = SectionHeader('QUEUE', self.queue_button)
+        self.queue_button.setToolTip('Add selected comps to queue...')
+        self.queue_header = SectionHeader('QUEUE')
+        self.queue_header.right.addWidget(self.queue_button)
+        self.queue_header.right.addWidget(self.reset_button)
+
+        # Toast - Sliding notification that overlays on top of Header
         self.toast = Toast('info', resources.get_path('info.png'), '', 3000)
 
+        # Body
+        self.queue = RenderQueue()
+        self.report = LogReport()
+        self.report.hide()
+
+        # Tools - Parented to options_header
+        self.status_indicator = StatusIndicator()
+        self.report_button = Tool(resources.get_path('report.png'))
+        self.report_button.setToolTip('View Report')
+        self.report_button.setVisible(False)
+        self.report_button.clicked.connect(self.toggle_report)
+        self.send_button = Tool(resources.get_path('send.png'))
+        self.send_button.setToolTip('Send Error Report')
+        self.send_button.setVisible(False)
+
+        # Options
+        self.options_visible = True
         self.options = Options()
+        self.options.setMinimumHeight(0)
         self.options.set(mp4=True, gif=True, sg=True)
         self.options_header = SectionHeader('OPTIONS')
-        self.options_placeholder = BigButton('RENDER')
-        self.options_footer = Footer()
-        self.options_footer.layout.addWidget(self.options_placeholder)
+        self.options_header.right.addWidget(self.status_indicator)
+        self.options_header.right.addWidget(self.send_button)
+        self.options_header.right.addWidget(self.report_button)
 
-        self.render = BigButton('RENDER')
+        # Footer
+        self.render_button = BigButton('RENDER')
         self.footer = Footer()
-        self.footer.layout.addWidget(self.render)
+        self.footer.setMinimumHeight(0)
+        self.footer.layout.addWidget(self.render_button)
 
         self.top_stack = QtWidgets.QGridLayout()
         self.top_stack.setContentsMargins(0, 0, 0, 0)
         self.top_stack.addWidget(self.queue_header)
         self.top_stack.addWidget(self.toast, 0, 0, 1, 1, QtCore.Qt.AlignTop)
 
+        self.body_stack = QtWidgets.QGridLayout()
+        self.body_stack.setContentsMargins(0, 0, 0, 0)
+        self.body_stack.addWidget(self.queue, 0, 0)
+        self.body_stack.addWidget(self.report, 0, 0)
+
         self.bot_stack = QtWidgets.QGridLayout()
         self.bot_stack.setContentsMargins(0, 0, 0, 0)
         self.bot_stack.addWidget(self.options_header, 0, 0)
         self.bot_stack.addWidget(self.options, 1, 0)
-        self.bot_stack.addWidget(self.options_footer, 2, 0)
-        self.bot_stack.addWidget(self.footer, 0, 0, 3, 1, QtCore.Qt.AlignBottom)
+        self.bot_stack.addWidget(self.footer, 2, 0)
 
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.addLayout(self.top_stack)
-        self.layout.addWidget(self.queue)
+        self.layout.addLayout(self.body_stack)
         self.layout.addLayout(self.bot_stack)
-
 
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
@@ -1187,6 +1338,121 @@ class Window(QtWidgets.QWidget):
         self.setWindowIcon(QtGui.QIcon(resources.get_path('icon_dark.png')))
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         self.resize(360, 540)
+
+    def set_status(self, status):
+        self.status_indicator.set_status(status)
+        self.options_header.set_status(status)
+        if status == const.Waiting:
+            self.options_header.set_label('OPTIONS')
+            self.options.setEnabled(True)
+            self.render_button.setEnabled(True)
+            self.queue_button.setVisible(True)
+            self.reset_button.setVisible(False)
+            self.status_indicator.setVisible(False)
+            self.report_button.setVisible(False)
+            self.send_button.setVisible(False)
+            self.hide_report()
+            self.show_options()
+        elif status == const.Running:
+            self.options_header.transition_label('RUNNING')
+            self.options.setEnabled(False)
+            self.render_button.setEnabled(False)
+            self.queue_button.setVisible(False)
+            self.reset_button.setVisible(False)
+            self.status_indicator.setVisible(True)
+            self.report_button.setVisible(False)
+            self.send_button.setVisible(False)
+            self.hide_options()
+        elif status == const.Success:
+            self.options_header.transition_label('SUCCESS')
+            self.options.setEnabled(False)
+            self.render_button.setEnabled(False)
+            self.reset_button.setVisible(True)
+            self.status_indicator.setVisible(True)
+            self.report_button.setVisible(True)
+            self.report_button.set_icon(resources.get_path('report.png'))
+            self.report_button.setToolTip('View Report')
+            self.send_button.setVisible(False)
+        elif status == const.Failed:
+            self.options_header.transition_label('FAILED')
+            self.options.setEnabled(False)
+            self.render_button.setEnabled(False)
+            self.reset_button.setVisible(True)
+            self.status_indicator.setVisible(True)
+            self.report_button.setVisible(True)
+            self.report_button.set_icon(resources.get_path('error_report.png'))
+            self.report_button.setToolTip('View Error Report')
+            self.send_button.setVisible(True)
+
+    def toggle_report(self):
+        if self.report.isVisible():
+            self.hide_report()
+        else:
+            self.show_report()
+
+    def show_report(self):
+        if self.report.isVisible():
+            return
+        pos = self.queue.pos()
+        self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b'pos')
+        self._slide_report_anim.setDuration(300)
+        self._slide_report_anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._slide_report_anim.setStartValue(QtCore.QPoint(self.width(), pos.y()))
+        self._slide_report_anim.setEndValue(QtCore.QPoint(0, pos.y()))
+        self._slide_report_anim.start()
+        self.report.setVisible(True)
+
+    def hide_report(self):
+        if not self.report.isVisible():
+            return
+        pos = self.report.pos()
+        self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b'pos')
+        self._slide_report_anim.setDuration(300)
+        self._slide_report_anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._slide_report_anim.setStartValue(QtCore.QPoint(0, pos.y()))
+        self._slide_report_anim.setEndValue(QtCore.QPoint(self.width(), pos.y()))
+        self._slide_report_anim.start()
+        self._slide_report_anim.finished.connect(lambda: self.report.setVisible(False))
+
+    def hide_options(self):
+        if not self.options_visible:
+            return
+        start_value = self.geometry()
+        end_value = QtCore.QRect(self.geometry())
+        end_value.setHeight(
+            start_value.height()
+            - self.options.sizeHint().height()
+            - self.footer.sizeHint().height()
+        )
+        self._anim = QtCore.QPropertyAnimation(self, b'geometry')
+        self._anim.setDuration(200)
+        self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._anim.setStartValue(start_value)
+        self._anim.setEndValue(end_value)
+        self._anim.start()
+        self.options.set_height(0)
+        self.footer.set_height(0)
+        self.options_visible = False
+
+    def show_options(self):
+        if self.options_visible:
+            return
+        start_value = self.geometry()
+        end_value = QtCore.QRect(self.geometry())
+        end_value.setHeight(
+            start_value.height()
+            + self.options.sizeHint().height()
+            + self.footer.sizeHint().height()
+        )
+        self._anim = QtCore.QPropertyAnimation(self, b'geometry')
+        self._anim.setDuration(200)
+        self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+        self._anim.setStartValue(start_value)
+        self._anim.setEndValue(end_value)
+        self._anim.start()
+        self.options.set_height(self.options.sizeHint().height())
+        self.footer.set_height(self.footer.sizeHint().height())
+        self.options_visible = True
 
     def show_error(self, message, duration=3000):
         self.toast.show(
@@ -1211,13 +1477,3 @@ class Window(QtWidgets.QWidget):
             message=message,
             duration=duration,
         )
-
-
-def DEBUG(msg, *args):
-    try:
-        import sgtk
-        sgtk.platform.current_engine().log_debug(msg, *args)
-    except:
-        if args:
-            msg = msg % args
-        print(msg)
