@@ -9,11 +9,12 @@ from queue import Queue
 from . import const, resources, ae, paths
 from .options import RenderOptions
 from .widgets import Window, Menu
-from .tasks.core import LogFormatter, Runner, Flow, call_in_main
+from .tasks.core import LogFormatter, Runner, Flow, generate_html_report, generate_report
 from .tasks.aerender import AERenderComp, BackgroundAERenderComp
 from .tasks.encode import EncodeMP4, EncodeGIF
 from .tasks.copy import Copy
 from .tasks.sgupload import SGUploadVersion
+from .tasks.generic import ErrorTask
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 
 
@@ -33,12 +34,14 @@ class Application(QtCore.QObject):
 
         # Create UI
         self.ui = Window(parent)
+        self.ui.reset_button.clicked.connect(self.reset_queue)
         self.ui.queue_button.clicked.connect(self.load_queue)
         self.ui.queue.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.ui.queue.customContextMenuRequested.connect(self.show_context_menu)
         self.ui.queue.drag.connect(self.drag_queue)
         self.ui.queue.drop.connect(self.drop_queue)
-        self.ui.render.clicked.connect(self.render)
+        self.ui.render_button.clicked.connect(self.render)
+        self.ui.send_button.clicked.connect(self.send_report)
         self.ui.closeEvent = self.closeEvent
         self.load_options()
 
@@ -56,7 +59,7 @@ class Application(QtCore.QObject):
             and (self.runner and self.runner.status in [const.Failed, const.Success])
         )
         if should_reset:
-            self.reset()
+            self.reset_queue()
 
         self.ui.show()
         if self.ui.windowState() == QtCore.Qt.WindowMinimized:
@@ -67,13 +70,6 @@ class Application(QtCore.QObject):
     def hide(self):
         self.log.debug('Hiding UI.')
         self.ui.hide()
-
-    def reset(self):
-        self.log.debug('Resetting Render Queue.')
-        self.ui.queue.clear()
-        self.items[:] = []
-        self.runner = None
-        self.set_render_status(const.Waiting)
 
     def load_options(self):
         # Set output module options
@@ -86,21 +82,26 @@ class Application(QtCore.QObject):
         if default_module:
             self.ui.options.module.setCurrentText(default_module)
 
+    def reset_queue(self):
+        self.log.debug('Resetting Render Queue.')
+        self.ui.queue.clear()
+        self.items[:] = []
+        self.runner = None
+        self.set_render_status(const.Waiting)
+
     def drag_queue(self, event):
-        self.log.debug('DRAG EVENT')
         if self.engine.has_dynamic_links(event.mimeData()):
             self.log.debug('ACCEPTING DRAG EVENT')
             event.acceptProposedAction()
 
     def drop_queue(self, event):
-        self.log.debug('DROP EVENT')
         dynamic_links = self.engine.get_dynamic_links(event.mimeData())
         if dynamic_links:
             self.delay(self.add_queue_dynamic_links, dynamic_links)
         event.acceptProposedAction()
 
     def load_queue(self):
-        self.reset()
+        self.reset_queue()
         self.items[:] = []
 
         # Find selected CompItems
@@ -129,6 +130,200 @@ class Application(QtCore.QObject):
             if item.data['instanceof'] == 'CompItem' and item['name'] not in queued:
                 self.items.append(item)
                 self.ui.queue.add_item(item['name'])
+
+    def on_runner_emit_record(self, record):
+        formatter = LogFormatter()
+        self.log.debug(formatter.format(record))
+
+    def on_flow_step_changed(self, event):
+        self.ui.queue.update_item(
+            label=event['flow'],
+            status=event['step'],
+            percent=event['progress'],
+        )
+
+    def set_render_status(self, status):
+        if status in const.DoneList:
+            self.ui.report.setText(generate_html_report(self.runner))
+
+        self.ui.set_status(status)
+
+        # Update Send button state and send report if needed.
+        if status == const.Failed:
+            self.ui.send_button.setVisible(self.is_send_button_visible())
+            if self.tk_app.send_on_error():
+                self.send_report()
+
+    def is_send_button_visible(self):
+        return (
+            self.tk_app.send_is_available()
+            and not self.tk_app.send_on_error()
+        )
+
+    def send_report(self):
+        try:
+            self.tk_app.send_report(
+                self.engine.context,
+                self.runner,
+                generate_report(self.runner),
+                generate_html_report(self.runner),
+            )
+            if not self.tk_app.send_on_error():
+                self.ui.show_info('Error report sent!')
+        except Exception:
+            self.log.exception('Failed to send error report.')
+            self.ui.show_error('Failed to send error report.')
+
+    def render(self):
+        if not self.items:
+            self.ui.show_error('Add items to the queue first!')
+            return
+
+        # Set status to Running manually - makes the UI feel more responsive
+        # as the first status change from Waiting -> Running make take a moment.
+        self.set_render_status(const.Running)
+
+        self.log.debug('Constructing Render Flows...')
+        with Runner('Render and Review', parent=self) as runner:
+            options = RenderOptions(**self.ui.options.get())
+            prev_flow = None
+            for item in self.items:
+                flow = self.new_render_flow(item['name'], options)
+                if prev_flow:
+                    flow.depends_on(prev_flow.tasks[0])
+                prev_flow = flow
+
+        self.log.debug('Starting Render Flows...')
+        self.runner = runner
+        self.runner.step_changed.connect(self.on_flow_step_changed)
+        self.runner.status_changed.connect(self.set_render_status)
+        self.runner.log.emit_record.connect(self.on_runner_emit_record)
+        self.runner.start()
+
+    def new_render_flow(self, item, options):
+        # Get required flow data...
+        sg_ctx = self.engine.context
+
+        # Extract template fields from work file template...
+        work_template = self.tk_app.get_work_template()
+        sg_fields = sg_ctx.as_template_fields(work_template)
+
+        # Get the rest of the required flow data...
+        copy_to_review = self.tk_app.get_copy_to_review()
+        render_folder = self.tk_app.get_render_template().apply_fields(sg_fields)
+        review_folder = self.tk_app.get_review_template().apply_fields(sg_fields)
+        output_data = self.generate_output_data(item, options.module, render_folder)
+        output_path, output_resolution = output_data
+        framerate = 1.0 / self.engine.get_comp(item).frameDuration
+        project = self.engine.project_path
+
+        # Build the flow context...
+        flow_ctx = {
+            'app': self,
+            'comp': item,
+            'options': options,
+            'sg_ctx': sg_ctx,
+            'sg_fields': sg_fields,
+            'render_folder': render_folder,
+            'review_folder': review_folder,
+            'output_path': output_path,
+            'output_resolution': output_resolution,
+            'framerate': framerate,
+            'project': self.engine.project_path,
+            'host': 'AfterFX',
+            'host_version': self.host_version,
+        }
+
+        with Flow(item) as flow:
+
+
+            # Add main render task
+            AERenderComp(
+                project=project,
+                comp=item,
+                output_module=options.module,
+                output_path=output_path,
+            )
+
+            # Poison pill for debugging and testing purposes
+            # ErrorTask(step=const.Rendering)
+
+            # Add Encode MP4 Task
+            mp4_path = paths.normalize(render_folder, item + '.mp4')
+            if options.mp4:
+                EncodeMP4(
+                    src_file=output_path,
+                    dst_file=mp4_path,
+                    quality=options.mp4_quality,
+                    framerate=framerate,
+                )
+
+            # Add Encode GIF Task
+            gif_path = paths.normalize(render_folder, item + '.gif')
+            if options.gif:
+                EncodeGIF(
+                    src_file=output_path,
+                    dst_file=gif_path,
+                    quality=options.gif_quality,
+                    framerate=framerate,
+                )
+
+            # Add Copy MP4 to review folder Task
+            if copy_to_review and options.mp4:
+                review_path = paths.normalize(review_folder, item + '.mp4')
+                Copy(
+                    src_file=mp4_path,
+                    dst_file=review_path,
+                    step='Copying ' + 'MP4',
+                )
+
+            # Add Copy GIF to review folder Task
+            if copy_to_review and options.gif:
+                review_path = paths.normalize(review_folder, item + '.gif')
+                Copy(
+                    src_file=gif_path,
+                    dst_file=review_path,
+                    step='Copying ' + 'GIF',
+                )
+
+            # Add SG Upload Version Task
+            if options.sg:
+                SGUploadVersion(
+                    src_file=(output_path, mp4_path)[options.mp4],
+                    sg_ctx=sg_ctx,
+                    comment=options.sg_comment,
+                )
+
+            flow.set_context(flow_ctx)
+
+        return flow
+
+    def generate_output_data(self, comp, output_module, render_folder):
+        comp_item = self.engine.get_comp(comp)
+        with self.engine.TempEnqueue(comp_item) as rq_item:
+            # Create output module for comp
+            om = rq_item.outputModule(1)
+
+            # Apply output module template
+            om.applyTemplate(output_module)
+            file_info = self.engine.get_file_info(om)
+            path_info = self.engine.get_ae_path_info(file_info['Full Flat Path'])
+
+            # Generate new file info
+            padding = '#' * path_info['padding']
+            extension = path_info['extension']
+            if path_info['is_sequence']:
+                output_path = paths.normalize(
+                    render_folder,
+                    comp,
+                    f'{comp}.[{padding}].{extension}',
+                )
+            else:
+                output_path = paths.normalize(
+                    render_folder,
+                    f'{comp}.{extension}'
+                )
+        return output_path, (comp_item.width, comp_item.height)
 
     def show_context_menu(self, point):
         # Get selected item
@@ -184,7 +379,7 @@ class Application(QtCore.QObject):
                         'Show in ShotGrid',
                         lambda: self.open_in_shotgrid(sg_version)
                     )
-            elif flow.status == const.Running:
+            if flow.status in [const.Running, const.Queued]:
                 menu.addAction(
                     QtGui.QIcon(resources.get_path('cancel.png')),
                     'Cancel',
@@ -256,195 +451,18 @@ class Application(QtCore.QObject):
 
         self.engine.import_filepath(file_path)
 
-    def render(self):
-        options = RenderOptions(**self.ui.options.get())
-
-        self.log.debug('Constructing Render Flows...')
-        with Runner('Render and Review', parent=self) as runner:
-            prev_flow = None
-            for item in self.items:
-                flow = self.new_render_flow(item['name'], options)
-                if prev_flow:
-                    flow.depends_on(prev_flow.tasks[0])
-                prev_flow = flow
-
-        self.log.debug('Starting Render Flows...')
-        self.runner = runner
-        self.runner.step_changed.connect(self.on_flow_step_changed)
-        self.runner.status_changed.connect(self.set_render_status)
-        self.runner.log.emit_record.connect(self.on_runner_emit_record)
-        self.runner.start()
-
-    def new_render_flow(self, item, options):
-        # Get required flow data...
-        sg_ctx = self.engine.context
-
-        # Extract template fields from work file template...
-        work_template = self.tk_app.get_work_template()
-        sg_fields = sg_ctx.as_template_fields(work_template)
-
-        # Get the rest of the required flow data...
-        copy_to_review = self.tk_app.get_copy_to_review()
-        render_folder = self.tk_app.get_render_template().apply_fields(sg_fields)
-        review_folder = self.tk_app.get_review_template().apply_fields(sg_fields)
-        output_data = self.generate_output_data(item, options.module, render_folder)
-        output_path, output_resolution = output_data
-        framerate = 1.0 / self.engine.get_comp(item).frameDuration
-        project = self.engine.project_path
-
-        # Build the flow context...
-        flow_ctx = {
-            'app': self,
-            'comp': item,
-            'options': options,
-            'sg_ctx': sg_ctx,
-            'sg_fields': sg_fields,
-            'render_folder': render_folder,
-            'review_folder': review_folder,
-            'output_path': output_path,
-            'output_resolution': output_resolution,
-            'framerate': framerate,
-            'project': self.engine.project_path,
-            'host': 'AfterFX',
-            'host_version': self.host_version,
-        }
-
-        with Flow(item) as flow:
-
-            # Add main render task
-            AERenderComp(
-                project=project,
-                comp=item,
-                output_module=options.module,
-                output_path=output_path,
-            )
-
-            mp4_path = paths.normalize(render_folder, item + '.mp4')
-            if options.mp4:
-                # Add Encode MP4 Task
-                EncodeMP4(
-                    src_file=output_path,
-                    dst_file=mp4_path,
-                    quality=options.mp4_quality,
-                    framerate=framerate,
-                )
-
-                # Add Copy MP4 to review folder Task
-                if copy_to_review:
-                    review_path = paths.normalize(review_folder, item + '.mp4')
-                    Copy(
-                        src_file=mp4_path,
-                        dst_file=review_path,
-                        step='Copying ' + 'MP4',
-                    )
-
-            gif_path = paths.normalize(render_folder, item + '.gif')
-            if options.gif:
-                # Add Encode GIF Task
-                EncodeGIF(
-                    src_file=output_path,
-                    dst_file=gif_path,
-                    quality=options.gif_quality,
-                    framerate=framerate,
-                )
-
-                # Add Copy GIF to review folder Task
-                if copy_to_review:
-                    review_path = paths.normalize(review_folder, item + '.gif')
-                    Copy(
-                        src_file=gif_path,
-                        dst_file=review_path,
-                        step='Copying ' + 'GIF',
-                    )
-
-            if options.sg:
-                # Add SG Upload Version Task
-                SGUploadVersion(
-                    src_file=(output_path, mp4_path)[options.mp4],
-                    sg_ctx=sg_ctx,
-                    comment=options.sg_comment,
-                )
-
-            flow.set_context(flow_ctx)
-
-        return flow
-
-    def generate_output_data(self, comp, output_module, render_folder):
-        comp_item = self.engine.get_comp(comp)
-        with self.engine.TempEnqueue(comp_item) as rq_item:
-            # Create output module for comp
-            om = rq_item.outputModule(1)
-
-            # Apply output module template
-            om.applyTemplate(output_module)
-            file_info = self.engine.get_file_info(om)
-            path_info = self.engine.get_ae_path_info(file_info['Full Flat Path'])
-
-            # Generate new file info
-            padding = '#' * path_info['padding']
-            extension = path_info['extension']
-            if path_info['is_sequence']:
-                output_path = paths.normalize(
-                    render_folder,
-                    comp,
-                    f'{comp}.[{padding}].{extension}',
-                )
-            else:
-                output_path = paths.normalize(
-                    render_folder,
-                    f'{comp}.{extension}'
-                )
-        return output_path, (comp_item.width, comp_item.height)
-
-    def on_runner_emit_record(self, record):
-        formatter = LogFormatter()
-        self.log.debug(formatter.format(record))
-
-    def on_flow_step_changed(self, event):
-        self.ui.queue.update_item(
-            label=event['flow'],
-            status=event['step'],
-            percent=event['progress'],
-        )
-
-    def set_render_status(self, status):
-        self.log.debug('Render status changed to %s...', status)
-        if status == const.Waiting:
-            self.ui.options_header.label.setText('OPTIONS')
-            self.ui.options.setEnabled(True)
-            self.ui.render.setEnabled(True)
-            self.ui.queue_button.setVisible(True)
-
-            self.ui.render.enable_movie(False)
-            self.ui.render.set_height(36)
-        if status == const.Running:
-            self.ui.options_header.label.setText('STATUS')
-            self.ui.options.setEnabled(False)
-            self.ui.render.setEnabled(False)
-            self.ui.queue_button.setVisible(False)
-
-            movie = resources.get_path(const.Running.title() + '.gif')
-            self.ui.render.set_movie(movie)
-            self.ui.render.enable_movie(True)
-            self.ui.render.set_height(
-                self.ui.options_header.height()
-                + self.ui.options.height()
-            )
-        if status in [const.Failed, const.Success]:
-            self.ui.options_header.label.setText('STATUS')
-            self.ui.options.setEnabled(False)
-            self.ui.render.setEnabled(False)
-            self.ui.queue_button.setVisible(True)
-
-            movie = resources.get_path(status.title() + '.gif')
-            self.ui.render.add_movie_to_queue(movie)
-            if status == const.Failed:
-                self.ui.show_error("Failed to render...", 3000)
-            else:
-                self.ui.show_info("Success!", 3000)
-
 
 class DelayedQueue(QtCore.QObject):
+    '''Function that facilitates executing a function a little later.
+
+    Useful in cases where you need to return control to another thread or process
+    temporarily and you don't care about the return value of what you're executing.
+
+    For example, when accepting dropped items from AfterEffects, we need to return
+    control to AfterEffects signalling that we accepted the drop, before asking
+    AfterEffects what items were dropped. Otherwise, the drop is never accepted and we
+    deadlock AfterEffects.
+    '''
 
     def __init__(self, log, parent=None):
         super(DelayedQueue, self).__init__(parent=parent)
