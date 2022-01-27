@@ -907,6 +907,56 @@ class Options(QtWidgets.QWidget):
                     % (k, v, type(control))
                 )
 
+class Movie(QtWidgets.QLabel):
+    '''Generic Movie class, supports playback of gifs and other media.'''
+
+    def __init__(self, file_path=None, parent=None):
+        super(Movie, self).__init__(parent=parent)
+        self.movie_queue = []
+        self.movie = QtGui.QMovie()
+        self.movie.frameChanged.connect(self.frame_changed)
+        self.setMovie(self.movie)
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding,
+        )
+        if file_path:
+            self.movie.setFileName(file_path)
+
+    def start(self):
+        self.movie.start()
+
+    def stop(self):
+        self.movie.stop()
+
+    def set(self, file_path):
+        '''Sets the current movie and clears the movie queue.'''
+
+        if self.movie.state() is self.movie.Running:
+            self.movie.stop()
+
+        self.movie_queue.clear()
+        self.movie.setFileName(file_path)
+        self.movie.start()
+
+    def queue(self, file_path):
+        '''Queues a movie to play once the current movie is finished.'''
+
+        self.movie_queue.insert(0, file_path)
+
+    def frame_changed(self, frame):
+        if not self.movie_queue or frame < self.movie.frameCount() - 1:
+            return
+
+        # Load next movie in queue
+        self.movie.stop()
+        self.movie.setFileName(self.movie_queue.pop())
+        self.movie.start()
+
+
+class Gif(Movie):
+    '''Alias for Movie to make code intentions clear.'''
 
 class BigButton(QtWidgets.QWidget):
 
@@ -928,42 +978,12 @@ class BigButton(QtWidgets.QWidget):
             $border;
             background: $dark;
         }
-        QLabel {
-            background: transparent;
-        }
     ''')
 
     clicked = QtCore.Signal()
 
     def __init__(self, text, parent=None):
-        super(BigButton, self).__init__(parent)
-
-        expanding = (
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding,
-        )
-
-        self.text = text
-        self.button = QtWidgets.QPushButton(text)
-        self.button.setSizePolicy(*expanding)
-        self.button.clicked.connect(self.clicked)
-        self.label = QtWidgets.QLabel()
-        self.label.setSizePolicy(*expanding)
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.hide()
-
-        self.movie_queue = []
-        self.movie = QtGui.QMovie()
-        self.movie.frameChanged.connect(self.frame_changed)
-        self.label.setMovie(self.movie)
-
-        self.anim = None
-
-        self.layout = QtWidgets.QGridLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.addWidget(self.button, 0, 0)
-        self.layout.addWidget(self.label, 0, 0)
-        self.setLayout(self.layout)
+        super(BigButton, self).__init__(text, parent)
 
         self.setFixedHeight(36)
         self.setSizePolicy(
@@ -972,49 +992,6 @@ class BigButton(QtWidgets.QWidget):
         )
         self.setStyleSheet(self.css)
 
-    def set_text(self, text):
-        self.text = text
-        self.button.set_text(text)
-
-    def set_movie(self, movie):
-        if self.movie.state() is self.movie.Running:
-            self.movie.stop()
-
-        self.movie_queue.clear()
-        self.movie.setFileName(movie)
-
-    def add_movie_to_queue(self, movie):
-        self.movie_queue.insert(0, movie)
-
-    def frame_changed(self, frame):
-        if not self.movie_queue or frame < self.movie.frameCount() - 1:
-            return
-
-        # Load next movie in queue
-        self.movie.stop()
-        self.movie.setFileName(self.movie_queue.pop())
-        self.movie.start()
-
-    def enable_movie(self, enabled):
-        if enabled:
-            self.label.show()
-            self.movie.start()
-            self.button.setEnabled(False)
-            self.button.setText('')
-        else:
-            self.label.hide()
-            self.movie.stop()
-            self.button.setEnabled(True)
-            self.button.setText(self.text)
-
-    def set_height(self, height):
-        self.anim = ValueAnimation(self)
-        self.anim.setDuration(200)
-        self.anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
-        self.anim.setStartValue(self.height())
-        self.anim.setEndValue(height)
-        self.anim.value_changed.connect(self.setFixedHeight)
-        self.anim.start()
 
 
 class Footer(QtWidgets.QWidget):
