@@ -958,7 +958,31 @@ class Movie(QtWidgets.QLabel):
 class Gif(Movie):
     '''Alias for Movie to make code intentions clear.'''
 
-class BigButton(QtWidgets.QWidget):
+
+class StatusIndicator(Movie):
+    '''Movie with predefined Gifs for different statuses.'''
+
+    def __init__(self, parent=None):
+        super(StatusIndicator, self).__init__(parent=parent)
+        self.setFixedSize(QtCore.QSize(20, 20))
+
+    def set_status(self, status):
+        if status == const.Waiting:
+            self.stop()
+        elif status == const.Running:
+            self.set(resources.get_path('Running_20.gif'))
+            self.start()
+        elif status == const.Failed:
+            self.queue(resources.get_path('Failed_20.gif'))
+            self.start()
+        elif status == const.Success:
+            self.queue(resources.get_path('Success_20.gif'))
+            self.start()
+        else:
+            raise ValueError('No status animation available for: %s' % status)
+
+
+class BigButton(QtWidgets.QPushButton):
 
     css = Theme.StyleSheet('''
         QPushButton {
@@ -991,7 +1015,6 @@ class BigButton(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Maximum,
         )
         self.setStyleSheet(self.css)
-
 
 
 class Footer(QtWidgets.QWidget):
