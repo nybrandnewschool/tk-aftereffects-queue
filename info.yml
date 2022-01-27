@@ -45,7 +45,30 @@ configuration:
     default_value: ['Lossless with Alpha']
     description: A list of default output modules in order of preference. The first
                  existing output module will be used as the default in the RQ UI.
+  send_report_hook:
+    type: hook
+    default_value: '{self}/default_send_report_hook.py'
+    description: |
+      Hook that is responsible for sending reports to the people who need to know!
+      You can use this hook to send an email, create a Ticket in Jira, create a Github
+      Issue, or submit an error to Sentry.io. The hook has an is_available method
+      which should return True when the hook is available. The default hook has
+      is_available returning False. Which means the send button is hidden by default.
+      Use the send_on_error method to return True if you'd like to hide the send button
+      and automatically send reports every time an error occurs during rendering.
+      Implement the send method to actually send a report.
 
+      Included Hooks:
+          {self}/default_send_report_hook.py - Disables the send report features.
+          {self}/ticket_send_report_hook.py - Creates a Ticket in the current project
+            when a user clicks the Send button.
+  send_report_settings:
+    type: dict
+    default_value: {}
+    description: |
+      Additional settings to pass to the send_report_hook's send method. These are
+      passed as the settings parameter. Useful if you need to provide configuration
+      for your send method.
 
 # Requirements
 supported_engines:
