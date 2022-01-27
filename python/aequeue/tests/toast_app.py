@@ -10,7 +10,7 @@ class TestApplication(QtCore.QObject):
 
         self.ui = Window()
         self.ui.queue_button.clicked.connect(self.load_queue)
-        self.ui.render.clicked.connect(self.render)
+        self.ui.render_button.clicked.connect(self.render)
 
     def show(self):
         self.ui.show()

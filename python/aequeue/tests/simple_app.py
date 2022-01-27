@@ -121,10 +121,15 @@ class TestApplication(QtCore.QObject):
         # Create UI
         self.ui = Window()
         self.ui.queue_button.clicked.connect(self.load_queue)
-        self.ui.render.clicked.connect(self.render)
+        self.ui.render_button.clicked.connect(self.render)
+        self.ui.reset_button.clicked.connect(self.reset_queue)
 
     def show(self):
         self.ui.show()
+
+    def reset_queue(self):
+        self.ui.queue.clear()
+        self.set_render_status(const.Waiting)
 
     def load_queue(self):
         self.ui.queue.clear()
@@ -146,32 +151,5 @@ class TestApplication(QtCore.QObject):
         self.pipeline.run()
 
     def set_render_status(self, status):
-        if status == const.Waiting:
-            self.ui.options_header.label.setText('OPTIONS')
-            self.ui.options.setEnabled(True)
-            self.ui.render.setEnabled(True)
-            self.ui.queue_button.setVisible(True)
+        self.ui.set_status(status)
 
-            self.ui.render.enable_movie(False)
-            self.ui.render.set_height(36)
-        if status == const.Running:
-            self.ui.options_header.label.setText('STATUS')
-            self.ui.options.setEnabled(False)
-            self.ui.render.setEnabled(False)
-            self.ui.queue_button.setVisible(False)
-
-            movie = resources.get_path(const.Running.title() + '.gif')
-            self.ui.render.set_movie(movie)
-            self.ui.render.enable_movie(True)
-            self.ui.render.set_height(
-                self.ui.options_header.height()
-                + self.ui.options.height()
-            )
-        if status in [const.Failed, const.Success]:
-            self.ui.options_header.label.setText('STATUS')
-            self.ui.options.setEnabled(False)
-            self.ui.render.setEnabled(False)
-            self.ui.queue_button.setVisible(True)
-
-            movie = resources.get_path(status.title() + '.gif')
-            self.ui.render.add_movie_to_queue(movie)

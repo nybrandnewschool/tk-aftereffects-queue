@@ -64,7 +64,7 @@ def show_tasks_app():
 
     from .tasks_app import TestApplication
 
-    app = TestApplication(nitems=5)
+    app = TestApplication(nitems=4)
     app.show()
     return app
 
