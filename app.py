@@ -115,6 +115,32 @@ class AEQueueApplication(Application):
     def get_copy_to_review(self):
         return self.get_setting('copy_to_review_area')
 
+    def send_is_available(self):
+        '''Is the send_report_hook available?'''
+
+        return self.execute_hook_method('send_report_hook', 'is_available')
+
+    def send_on_error(self):
+        '''Should errors be sent automatically when an error during rendering occurs?'''
+
+        return self.execute_hook_method('send_report_hook', 'send_on_error')
+
+    def send_report(self, ctx, runner, report, html_report):
+        '''Send an error report using the send_report_hook's send method.'''
+
+        if not self.send_is_available():
+            raise RuntimeError("Can't send report: send_report_hook is unavailable...")
+
+        return self.execute_hook_method(
+            'send_report_hook',
+            'send',
+            ctx=ctx,
+            runner=runner,
+            report=report,
+            html_report=html_report,
+            settings=self.get_setting('send_report_settings') or {},
+        )
+
     @property
     def context_change_allowed(self):
         return True
