@@ -88,31 +88,48 @@ class AEQueueApplication(Application):
         self.aequeue = None
 
     def get_resource(self, path):
-        """Get a path to a file in this application directory."""
+        '''Get a path to a file in this application directory.'''
+
         return normalize(self.disk_location, path)
 
     def get_default_output_module(self, existing_output_modules):
+        '''Get the first configured output_module that exists.
+
+        Used as the default output module in the UI.
+        '''
+
         defaults = self.get_setting('default_output_module')
         for default in defaults:
             if default in existing_output_modules:
                 return default
 
     def get_work_template(self):
+        '''Get the work file template used to extract fields from the AE project path'''
+
         template_name = self.get_setting('template_work_file')
         template = self.sgtk.templates.get(template_name)
         return template
 
     def get_render_template(self):
+        '''Get the path template used to generate a path to the folder for outputting
+        all renders.'''
+
         template_name = self.get_setting('template_render_area')
         template = self.sgtk.templates.get(template_name)
         return template
 
     def get_review_template(self):
+        '''Get the path template used to generate a path to a review folder where
+        encoded media for review will be copied to.'''
+
         template_name = self.get_setting('template_review_area')
         template = self.sgtk.templates.get(template_name)
         return template
 
     def get_copy_to_review(self):
+        '''Should encoded media be copied to the review area defined by
+        template_review_area?'''
+
         return self.get_setting('copy_to_review_area')
 
     def send_is_available(self):
