@@ -91,10 +91,12 @@ class Application(QtCore.QObject):
 
     def drag_queue(self, event):
         if self.engine.has_dynamic_links(event.mimeData()):
-            self.log.debug('ACCEPTING DRAG EVENT')
             event.acceptProposedAction()
 
     def drop_queue(self, event):
+        if not hasattr(event, 'mimeData'):
+            self.log.debug('Got invalid event: %s' % event)
+            return
         dynamic_links = self.engine.get_dynamic_links(event.mimeData())
         if dynamic_links:
             self.delay(self.add_queue_dynamic_links, dynamic_links)
@@ -306,8 +308,12 @@ class Application(QtCore.QObject):
 
             # Apply output module template
             om.applyTemplate(output_module)
+            om.setSettings({'File Name Template': '[compName]'})
+
             file_info = self.engine.get_file_info(om)
             path_info = self.engine.get_ae_path_info(file_info['Full Flat Path'])
+            self.log.debug('FILE INFO: %s' % file_info)
+            self.log.debug('PATH INFO: %s' % path_info)
 
             # Generate new file info
             padding = '#' * path_info['padding']
