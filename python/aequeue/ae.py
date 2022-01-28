@@ -177,11 +177,10 @@ class AfterEffectsEngineWrapper(object):
             rq_item = self.enqueue_comp(comp)
             om = rq_item.outputModule(1)
             for template in om.templates:
-
-                if skip_hidden and template.startswith('_HIDDEN'):
-                    continue
-
                 try:
+                    if skip_hidden and template.startswith('_HIDDEN'):
+                        continue
+
                     if fnmatch.fnmatch(template, pattern):
                         results.append(template)
                 except Exception:
