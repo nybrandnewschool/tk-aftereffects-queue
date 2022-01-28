@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 import time
 import threading
@@ -586,31 +587,55 @@ def generate_html_report(runner):
 
     formatters = {
         'flow': LogFormatter(
-            '<pre style="margin: 0px;">  <em>%(flow_step)s</em> [%(flow_progress)3d%%] %(message)s</pre>'
+            '<pre style="margin: 0px;">  %(flow_step)s [%(flow_progress)3d%%] %(message)s</pre>'
         ),
         'task': LogFormatter(
-            '<pre style="margin: 0px;">    <em>%(task_status)s</em> [%(task_progress)3d%%] %(message)s</pre>'
+            '<pre style="margin: 0px;">   %(branch)s %(task_status)s [%(task_progress)3d%%] %(message)s</pre>'
         ),
     }
+
+    def format_record(record):
+        formatter = formatters[record.type]
+        record.branch = '├'
+        if record.type == 'task' and record.task_status == 'success':
+            record.branch = '└'
+        lines = []
+        # Apply base formatting
+        if record.exc_info:
+            # Temporarily modify record so we can nicely format the exception...
+            einfo, etext, stk = record.exc_info, record.exc_text, record.stack_info
+            record.exc_info = record.exc_text = record.stack_info = None
+            record.message = str(einfo[1])
+
+            formatted_exc = ''.join(traceback.format_tb(einfo[2]))
+            lines.append(formatter.format(record))
+            lines.append(f'<pre style="color: #EB5757;">{formatted_exc}</pre>')
+
+            # Restore record
+            record.exc_info, record.exc_text, record.stack_info = einfo, etext, stk
+        else:
+            lines.append(formatters[record.type].format(record))
+
+        # Apply color and emphasis to status labels
+        if record.type == 'flow':
+            pattern = record.flow_step
+            status = pattern.split()[0].lower()
+            color = '#AFAFAF'
+        else:
+            pattern = record.task_status
+            status = pattern.split()[0].lower()
+            color = '#BFBFBF'
+        repl = f'<em style="color: {color};">{pattern}</em>'
+        for i, line in enumerate(lines):
+            lines[i] = re.sub(pattern, repl, line)
+
+        return lines
 
     report = ['<pre style="line-height:5%;">  <div>']
     for flow in runner.flows:
         report.append(f'<pre style="font-family: Roboto; font-size: 14px;color: #DDDDDD;">  {flow.name}</pre>')
         for record in flow.log_records:
-            if record.exc_info:
-                # Temporarily modify record so we can nicely format the exception...
-                einfo, etext, stk = record.exc_info, record.exc_text, record.stack_info
-                record.exc_info = record.exc_text = record.stack_info = None
-                record.message = str(einfo[1])
-
-                formatted_exc = ''.join(traceback.format_tb(einfo[2]))
-                report.append(formatters[record.type].format(record))
-                report.append(f'<pre style="color: #EB5757;">{formatted_exc}</pre>')
-
-                # Restore record
-                record.exc_info, record.exc_text, record.stack_info = einfo, etext, stk
-            else:
-                report.append(formatters[record.type].format(record))
+            report.extend(format_record(record))
 
     return '\n'.join(report)
 
