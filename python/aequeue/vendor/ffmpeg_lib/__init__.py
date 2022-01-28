@@ -431,7 +431,7 @@ def get_frame_range(in_file):
 
     frame = parse_frame(out)
     if not frame:
-        raise RuntimeError('Could not probe framerange from video file.')
+        raise RuntimeError('Could not probe framerange from "%s".' % in_file)
 
     return 1, frame
 
