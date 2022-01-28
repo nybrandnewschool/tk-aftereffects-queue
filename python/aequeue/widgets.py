@@ -1,3 +1,4 @@
+import re
 import sys
 import textwrap
 from weakref import WeakValueDictionary
@@ -45,13 +46,19 @@ class Theme:
         for key, value in color_codes.items()
     }
     status_color_codes = {
+        # Steps
         const.Queued: color_codes['on_surface'],
         const.Rendering: color_codes['yellow'],
         const.Encoding: color_codes['red'],
-        const.Failed: color_codes['red'],
         const.Copying: color_codes['purple'],
         const.Uploading: color_codes['blue'],
         const.Done: color_codes['green'],
+        # Statuses
+        const.Waiting: color_codes['on_surface'],
+        const.Running: color_codes['yellow'],
+        const.Cancelled: color_codes['dark'],
+        const.Revoked: color_codes['dark'],
+        const.Failed: color_codes['red'],
         const.Success: color_codes['green'],
     }
     status_colors = {
@@ -1403,7 +1410,7 @@ class Window(QtWidgets.QWidget):
         self.report.setVisible(True)
 
     def hide_report(self):
-        if not self.report.isVisible():
+        if self.isVisible() and not self.report.isVisible():
             return
         pos = self.report.pos()
         self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b'pos')
@@ -1477,3 +1484,13 @@ class Window(QtWidgets.QWidget):
             message=message,
             duration=duration,
         )
+
+
+def DEBUG(msg, *args):
+    try:
+        import sgtk
+        sgtk.platform.current_engine().log_debug(msg, *args)
+    except:
+        if args:
+            msg = msg % args
+        print(msg)
