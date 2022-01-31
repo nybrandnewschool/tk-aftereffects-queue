@@ -42,7 +42,7 @@ class AERenderComp(SyncTask):
         self.log.debug('Setting Full Flat Path: %s' % self.output_path)
         app.engine.set_file_info(om, {'Full Flat Path': self.output_path})
 
-        self.log.debug('Rendering AEComp...')
+        self.log.debug('Rendering [%s]', self.output_module)
         self.set_status(const.Running, 60)
         try:
             os.makedirs(self.output_folder, exist_ok=True)
