@@ -90,6 +90,12 @@ class AEQueueApplication(sgtk.platform.Application):
         del self.aequeue
         self.aequeue = None
 
+    def get_command_name(self):
+        return self.get_setting('command_name')
+
+    def get_window_title(self):
+        return self.get_setting('command_name').strip('.')
+
     def get_resource(self, path):
         '''Get a path to a file in this application directory.'''
 

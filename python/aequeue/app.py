@@ -23,9 +23,6 @@ class Application(QtCore.QObject):
     def __init__(self, tk_app, parent=None):
         super(Application, self).__init__(parent)
 
-        # Initialize tk_app dependent parts
-        self.update_tk_app(tk_app)
-
         self.items = []
         self.runner = None
 
@@ -40,6 +37,9 @@ class Application(QtCore.QObject):
         self.ui.render_button.clicked.connect(self.render)
         self.ui.send_button.clicked.connect(self.send_report)
         self.ui.closeEvent = self.closeEvent
+
+        # Initialize tk_app dependent parts
+        self.update_tk_app(tk_app)
 
         # Track whether default options have been loaded
         self._defaults_loaded = False
@@ -77,6 +77,8 @@ class Application(QtCore.QObject):
         self.engine = ae.AfterEffectsEngineWrapper(tk_app.engine)
         self.host_version = '20' + self.tk_app.engine.host_info['version'].split('.')[0]
         self.delay = DelayedQueue(self.log, self)
+        if self.ui:
+            self.ui.setWindowTitle(tk_app.get_window_title())
 
     def load_options(self, apply_defaults):
         self.log.debug('Loading UI options...')
