@@ -172,20 +172,26 @@ class AfterEffectsEngineWrapper(object):
             List[str]
         '''
 
-        results = []
-        with self.TempComp('QUERY_TEMPLATES') as comp:
-            rq_item = self.enqueue_comp(comp)
-            om = rq_item.outputModule(1)
+        def filter_templates(om):
             for template in om.templates:
                 try:
                     if skip_hidden and template.startswith('_HIDDEN'):
                         continue
 
                     if fnmatch.fnmatch(template, pattern):
-                        results.append(template)
+                        yield template
                 except Exception:
                     continue
-        return results
+
+        if self.render_queue_empty():
+            with self.TempComp('QUERY_TEMPLATES') as comp:
+                rq_item = self.enqueue_comp(comp)
+                om = rq_item.outputModule(1)
+                return list(filter_templates(om))
+        else:
+            rq_item = self.adobe.app.project.renderQueue.items[1]
+            om = rq_item.outputModule(1)
+            return list(filter_templates(om))
 
     def _validate_file_info(self, data):
         errors = {}
