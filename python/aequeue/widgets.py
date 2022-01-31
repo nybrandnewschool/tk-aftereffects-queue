@@ -838,7 +838,7 @@ class LogReport(QtWidgets.QTextEdit):
             $border;
             background: $dark;
             color: $light;
-            padding-left: 6px;
+            padding-left: 10px;
         }
         QAbstractScrollArea {
             background: $dark;
