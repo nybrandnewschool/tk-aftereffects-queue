@@ -160,6 +160,11 @@ class AfterEffectsEngineWrapper(object):
                 results.append(item.comp.data)
         return results
 
+    def render_queue_empty(self):
+        '''Returns True if the render queue is empty.'''
+
+        return self.adobe.app.project.renderQueue.items.length <= 0
+
     def find_output_module_templates(self, pattern='*', skip_hidden=True):
         '''Find Output Module templates.
 
