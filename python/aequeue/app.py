@@ -23,11 +23,8 @@ class Application(QtCore.QObject):
     def __init__(self, tk_app, parent=None):
         super(Application, self).__init__(parent)
 
-        self.tk_app = tk_app
-        self.log = tk_app.logger
-        self.engine = ae.AfterEffectsEngineWrapper(tk_app.engine)
-        self.host_version = '20' + self.tk_app.engine.host_info['version'].split('.')[0]
-        self.delay = DelayedQueue(self.log, self)
+        # Initialize tk_app dependent parts
+        self.update_tk_app(tk_app)
 
         self.items = []
         self.runner = None
@@ -71,9 +68,12 @@ class Application(QtCore.QObject):
         self.log.debug('Hiding UI.')
         self.ui.hide()
 
-    def load_options(self):
-        # Set output module options
-        existing_output_modules = self.engine.find_output_module_templates()
+    def update_tk_app(self, tk_app):
+        self.tk_app = tk_app
+        self.log = tk_app.logger
+        self.engine = ae.AfterEffectsEngineWrapper(tk_app.engine)
+        self.host_version = '20' + self.tk_app.engine.host_info['version'].split('.')[0]
+        self.delay = DelayedQueue(self.log, self)
         self.ui.options.module.clear()
         self.ui.options.module.addItems(existing_output_modules)
 
@@ -179,6 +179,11 @@ class Application(QtCore.QObject):
     def render(self):
         if not self.items:
             self.ui.show_error('Add items to the queue first!')
+            return
+
+        ready_to_run, message = self.tk_app.ensure_context_optimal()
+        if not ready_to_run:
+            self.ui.show_error(message)
             return
 
         # Set status to Running manually - makes the UI feel more responsive
