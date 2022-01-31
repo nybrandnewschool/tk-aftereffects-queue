@@ -65,7 +65,7 @@ class EncodeMP4(Task):
             proc = ffmpeg_lib.encode(
                 '-y',
                 '-i', src_file,
-                '-acodec', 'copy',
+                '-acodec', 'aac',
                 '-vcodec', 'libx264',
                 '-crf', crf,
                 '-preset', preset,
