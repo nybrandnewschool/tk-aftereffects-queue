@@ -161,9 +161,63 @@ class AEQueueApplication(sgtk.platform.Application):
             settings=self.get_setting('send_report_settings') or {},
         )
 
+    def ensure_context_optimal(self, reset=False):
+        '''Make sure the current context is up to date with your project context.'''
+
+        current_ctx = self.engine.context
+
+        try:
+            project_ctx = self.engine.sgtk.context_from_path(self.engine.project_path)
+        except Exception:
+            return False, "Can't determine Context. Please use ShotGrid Open/Save..."
+
+        if project_ctx.step and not project_ctx.task:
+            # Lookup tasks
+            tasks = self.shotgun.find(
+                'Task',
+                filters=[
+                    ['entity', 'is', project_ctx.entity],
+                    ['step', 'is', project_ctx.step],
+                ],
+            )
+            if len(tasks) < 2:
+                task = tasks[0]
+                project_ctx = self.engine.sgtk.context_from_entity('Task', task['id'])
+            else:
+                return False, "Can't determine Task. Please use ShotGrid Open/Save..."
+
+        should_change_context = (
+            current_ctx.project != project_ctx.project
+            or current_ctx.entity != project_ctx.entity
+            or current_ctx.step != project_ctx.step
+            or current_ctx.task != project_ctx.task
+        )
+        if should_change_context:
+            optimal_ctx = project_ctx
+        else:
+            optimal_ctx = current_ctx
+
+        if not optimal_ctx.task:
+            return False, "Can't determine Task. Please use ShotGrid Open/Save..."
+
+        if should_change_context:
+            self._reset_on_context_change = reset
+            self.engine.adobe.context_about_to_change()
+            sgtk.platform.change_context(optimal_ctx)
+
+        return True, 'Ready to render!'
+
     @property
     def context_change_allowed(self):
         return True
 
     def post_context_change(self, old_context, new_context):
-        self.aequeue.reset()
+        if self.aequeue:
+            # Update UI Application
+            self.aequeue.update_tk_app(self)
+
+            # Reset UI Queue
+            if self._reset_on_context_change:
+                self.aequeue.reset_queue()
+
+        self._reset_on_context_change = True
