@@ -2,7 +2,7 @@
 import os
 
 # Third party imports
-from sgtk.platform import Application
+import sgtk
 
 
 def normalize(*parts):
@@ -29,18 +29,15 @@ def is_ffmpeg_installed():
     return bool(which('ffmpeg'))
 
 
-class AEQueueApplication(Application):
+class AEQueueApplication(sgtk.platform.Application):
 
     def init_app(self):
         # Perform additional validation before registering
         self.ensure_ffmpeg_installed()
         self.ensure_templates_exist()
 
-        self.aequeue_module = self.import_module('aequeue')
-        self.aequeue = self.aequeue_module.Application(
-            self,
-            parent=self.engine._get_dialog_parent()
-        )
+        self.aequeue_module = None
+        self.aequeue = None
         self.engine.register_command(
             self.get_setting('command_name'),
             self.show_app,
@@ -76,6 +73,12 @@ class AEQueueApplication(Application):
             raise RuntimeError(msg)
 
     def show_app(self):
+        if self.aequeue_module is None:
+            self.aequeue_module = self.import_module('aequeue')
+            self.aequeue = self.aequeue_module.Application(
+                self,
+                parent=self.engine._get_dialog_parent()
+            )
         self.aequeue.show()
 
     def hide_app(self):
