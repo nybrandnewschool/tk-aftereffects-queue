@@ -40,7 +40,9 @@ class Application(QtCore.QObject):
         self.ui.render_button.clicked.connect(self.render)
         self.ui.send_button.clicked.connect(self.send_report)
         self.ui.closeEvent = self.closeEvent
-        self.load_options()
+
+        # Track whether default options have been loaded
+        self._defaults_loaded = False
 
     def closeEvent(self, event):
         if self.runner and self.runner.status == const.Running:
@@ -50,7 +52,8 @@ class Application(QtCore.QObject):
             return QtWidgets.QWidget.closeEvent(self.ui, event)
 
     def show(self):
-        self.log.debug('Showing UI.')
+        self.log.debug('Showing UI...')
+        self.load_options(not self._defaults_loaded)
         should_reset = (
             not self.ui.isVisible()
             and (self.runner and self.runner.status in [const.Failed, const.Success])
@@ -74,16 +77,32 @@ class Application(QtCore.QObject):
         self.engine = ae.AfterEffectsEngineWrapper(tk_app.engine)
         self.host_version = '20' + self.tk_app.engine.host_info['version'].split('.')[0]
         self.delay = DelayedQueue(self.log, self)
-        self.ui.options.module.clear()
-        self.ui.options.module.addItems(existing_output_modules)
 
-        # Set default output module
-        default_module = self.tk_app.get_default_output_module(existing_output_modules)
-        if default_module:
-            self.ui.options.module.setCurrentText(default_module)
+    def load_options(self, apply_defaults):
+        self.log.debug('Loading UI options...')
+        # Stash previous option values
+        stash = self.ui.options.get()
+
+        # Populate options with data from AE
+        existing_modules = self.engine.find_output_module_templates()
+        self.ui.options.module.clear()
+        self.ui.options.module.addItems(existing_modules)
+
+        # Apply defaults OR stash!
+        if apply_defaults:
+            self.log.debug('Applying UI option defaults...')
+            default_module = self.tk_app.get_default_output_module(existing_modules)
+            if default_module:
+                self.ui.options.module.setCurrentText(default_module)
+
+            # Update flag so we don't update them next time we load options.
+            self._defaults_loaded = True
+        else:
+            if stash['module']:
+                self.ui.options.module.setCurrentText(stash['module'])
 
     def reset_queue(self):
-        self.log.debug('Resetting Render Queue.')
+        self.log.debug('Resetting Render Queue...')
         self.ui.queue.clear()
         self.items[:] = []
         self.runner = None
