@@ -22,23 +22,17 @@ class EncodeMP4(Task):
         super(EncodeMP4, self).__init__(*args, **kwargs)
 
     def on_start(self, proc):
-        self.log.debug(
-            'Encoding MP4 [%s] %s => %s',
-            self.quality,
-            proc.in_file,
-            proc.out_file,
-        )
+        self.log.debug('Encoding MP4 [%s]', self.quality)
+        self.log.debug(" ".join(proc.args))
 
     def on_frame(self, proc):
         self.set_status(const.Running, proc.progress)
         self.log.debug(f'Frame {proc.frame:>4d} of {proc.num_frames + 1:>4d}.')
 
     def on_error(self, proc):
-        self.set_status(const.Failed, proc.progress)
         raise EncodeError('Failed to encode mp4...\n' + proc.error)
 
     def on_done(self, proc):
-        self.set_status(const.Success, proc.progress)
         self.log.debug('Finished encoding mp4!')
 
     def execute(self):
@@ -99,12 +93,8 @@ class EncodeGIF(Task):
         super(EncodeGIF, self).__init__(*args, **kwargs)
 
     def on_start(self, proc):
-        self.log.debug(
-            'Encoding MP4 [%s] %s => %s',
-            self.quality,
-            proc.in_file,
-            proc.out_file,
-        )
+        self.log.debug('Encoding GIF [%s]', self.quality)
+        self.log.debug(" ".join(proc.args))
 
     def on_frame(self, proc):
         self.set_status(const.Running, proc.progress)
@@ -115,7 +105,6 @@ class EncodeGIF(Task):
         raise EncodeError('Failed to encode mp4...\n' + proc.error)
 
     def on_done(self, proc):
-        self.set_status(const.Success, proc.progress)
         self.log.debug('Finished encoding mp4!')
 
     def execute(self):
