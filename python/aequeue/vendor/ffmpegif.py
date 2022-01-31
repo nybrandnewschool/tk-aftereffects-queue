@@ -42,6 +42,18 @@ def parser():
         default='',
     )
     parser.add_argument(
+        '-stats_mode',
+        dest='stats_mode',
+        help='Palettegen mode...diff:favor changing pixels/full: all pixels equal',
+        default='diff',
+    )
+    parser.add_argument(
+        '-dither',
+        dest='dither',
+        help='Dithering method: none, bayer, floyd_steinberg, sierra2_4a',
+        default='diff',
+    )
+    parser.add_argument(
         '-filter',
         dest='filter',
         help='Output Scale filter: bilinear, lanczos, sinc, gauss, bicubic',
@@ -87,6 +99,8 @@ def encode(
     filter=None,
     transpose=None,
     max_colors=None,
+    stats_mode=None,
+    dither=None,
     start_time=None,
     frames=None,
 ):
@@ -100,13 +114,15 @@ def encode(
     # Build filter graph
     filter_graph = (
         '[0:v] %s%s%ssplit [a][b];'
-        '[a] palettegen%s [p];'
-        '[b][p] paletteuse'
+        '[a] palettegen%s%s [p];'
+        '[b][p] paletteuse%s'
     ) % (
         ('', 'fps=%s,' % framerate)[bool(framerate)],
-        ('', 'scale=%s:-1:flags=%s,' % (width, filter or 'bicubic'))[bool(width)],
+        ('', 'scale=%s:-1:flags=%s,' % (width, filter or 'lanczos'))[bool(width)],
         ('', 'transpose=%s,' % transpose)[bool(transpose)],
         ('', '=max_colors=%s' % max_colors)[bool(max_colors)],
+        ('', ':stats_mode=%s' % stats_mode)[bool(stats_mode)],
+        ('', ':dither=%s' % dither)[bool(dither)],
     )
 
     # Build ffmpeg args
@@ -141,6 +157,8 @@ def main():
         args.filter,
         args.transpose,
         args.max_colors,
+        args.stats_mode,
+        args.dither,
         args.start_time,
         args.frames,
     )
