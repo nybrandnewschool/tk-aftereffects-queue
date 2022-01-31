@@ -405,7 +405,7 @@ class Application(QtCore.QObject):
                 )
                 if sg_version:
                     menu.addAction(
-                        QtGui.QIcon(resources.get_path('shotgrid.png')),
+                        QtGui.QIcon(resources.get_path('shotgrid_outlines.png')),
                         'Show in ShotGrid',
                         lambda: self.open_in_shotgrid(sg_version)
                     )
