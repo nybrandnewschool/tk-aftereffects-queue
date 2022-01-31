@@ -300,7 +300,7 @@ class Application(QtCore.QObject):
                 Copy(
                     src_file=mp4_path,
                     dst_file=review_path,
-                    step='Copying ' + 'MP4',
+                    step=const.Copying + ' MP4',
                 )
 
             # Add Copy GIF to review folder Task
@@ -309,7 +309,7 @@ class Application(QtCore.QObject):
                 Copy(
                     src_file=gif_path,
                     dst_file=review_path,
-                    step='Copying ' + 'GIF',
+                    step=const.Copying + ' GIF',
                 )
 
             # Add SG Upload Version Task
