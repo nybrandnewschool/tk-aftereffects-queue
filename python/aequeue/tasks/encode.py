@@ -67,6 +67,7 @@ class EncodeMP4(Task):
                 '-i', src_file,
                 '-acodec', 'aac',
                 '-vcodec', 'libx264',
+                '-pix_fmt', 'yuv420p',
                 '-crf', crf,
                 '-preset', preset,
                 self.dst_file,
