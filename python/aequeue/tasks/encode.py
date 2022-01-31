@@ -2,7 +2,7 @@ import os
 import shutil
 
 from .. import const
-from ..vendor import ffmpeg_lib, ffmpegif
+from ..vendor import ffmpeg_lib
 from .core import Task
 
 
@@ -117,6 +117,7 @@ class EncodeGIF(Task):
             padding = '%0{}d'.format(src_file_info['padding'])
             src_file = src_file.replace(src_file_info['padding_str'], padding)
 
+        # Prepare cli arguments
         width = None
         resolution = ffmpeg_lib.get_resolution(src_file)
         if resolution:
@@ -129,11 +130,22 @@ class EncodeGIF(Task):
             else:
                 width = None
 
-        proc = ffmpegif.encode(
-            in_file=src_file,
-            out_file=self.dst_file,
-            framerate=self.framerate,
-            width=width,
+        fps = self.framerate
+        scale = ('', f'scale={width}:-1:flags=lanczos,')[bool(width)]
+        colors = 128
+        dither = ''  # 'dither=bayer:bayer_scale=3:'
+        filters = [
+            f'[0:v] fps={fps},{scale}split [a][b]',
+            f'[a] palettegen=max_colors={colors}:stats_mode=diff [p]',
+            f'[b][p] paletteuse={dither}diff_mode=rectangle',
+        ]
+        proc = ffmpeg_lib.encode(
+            '-i', src_file,
+            '-filter_complex', ';'.join(filters),
+            '-loop', '0',
+            '-gifflags', '+transdiff',
+            '-y',
+            self.dst_file,
         )
         ffmpeg_lib.watch(
             proc,
