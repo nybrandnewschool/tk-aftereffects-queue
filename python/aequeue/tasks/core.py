@@ -167,7 +167,7 @@ class Task(QtCore.QRunnable):
         if self.flow:
             self.flow.add_task(self)
 
-        self.log.debug('Task initialized...')
+        self.log.debug(f'{self.step} initialized...')
 
     def __repr__(self):
         return '<{}:{}>'.format(self.__class__.__name__, self.id)
@@ -597,7 +597,7 @@ def generate_html_report(runner):
     def format_record(record):
         formatter = formatters[record.type]
         record.branch = '├'
-        if record.type == 'task' and record.task_status == 'success':
+        if record.type == 'task' and record.task_status in const.DoneList:
             record.branch = '└'
         lines = []
         # Apply base formatting
@@ -620,18 +620,18 @@ def generate_html_report(runner):
         if record.type == 'flow':
             pattern = record.flow_step
             status = pattern.split()[0].lower()
-            color = '#AFAFAF'
+            color = '#CFCFCF'
         else:
             pattern = record.task_status
             status = pattern.split()[0].lower()
-            color = '#BFBFBF'
+            color = '#AFAFAF'
         repl = f'<em style="color: {color};">{pattern}</em>'
         for i, line in enumerate(lines):
             lines[i] = re.sub(pattern, repl, line)
 
         return lines
 
-    report = ['<pre style="line-height:5%;">  <div>']
+    report = ['<pre style="line-height:0%;">  </pre>']
     for flow in runner.flows:
         report.append(f'<pre style="font-family: Roboto; font-size: 14px;color: #DDDDDD;">  {flow.name}</pre>')
         for record in flow.log_records:
