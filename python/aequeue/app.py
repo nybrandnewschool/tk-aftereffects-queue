@@ -97,6 +97,12 @@ class Application(QtCore.QObject):
             if default_module:
                 self.ui.options.module.setCurrentText(default_module)
 
+            default_mp4_quality = self.tk_app.get_default_mp4_quality()
+            self.ui.options.mp4_quality.setCurrentText(default_mp4_quality)
+
+            default_gif_quality = self.tk_app.get_default_gif_quality()
+            self.ui.options.gif_quality.setCurrentText(default_gif_quality)
+
             # Update flag so we don't update them next time we load options.
             self._defaults_loaded = True
         else:

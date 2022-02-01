@@ -101,6 +101,12 @@ class AEQueueApplication(sgtk.platform.Application):
 
         return normalize(self.disk_location, path)
 
+    def get_default_mp4_quality(self):
+        return self.get_setting('default_mp4_quality')
+
+    def get_default_gif_quality(self):
+        return self.get_setting('default_gif_quality')
+
     def get_default_output_module(self, existing_output_modules):
         '''Get the first configured output_module that exists.
 
