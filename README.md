@@ -1,5 +1,5 @@
 # AEQueue (tk-aftereffects-queue)
-[![stable](https://img.shields.io/badge/version-0.2.2-green.svg)](https://semver.org)</br>
+[![stable](https://img.shields.io/badge/version-0.3.0-green.svg)](https://semver.org)</br>
 *Developed at [Brand New School](https://brandnewschool.com).*
 
 An After Effects render queue for ShotGrid Toolkit.

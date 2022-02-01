@@ -123,12 +123,13 @@ class EncodeGIF(Task):
         if resolution:
             width = resolution[0]
         if width:
+            max_width = min(width, 2160)
             if self.quality == 'Low Quality':
-                width = int(width * 0.25)
+                width = int(max_width * 0.25)
             elif self.quality == 'Medium Quality':
-                width = int(width * 0.5)
+                width = int(max_width * 0.5)
             else:
-                width = None
+                width = max_width
 
         fps = self.framerate
         scale = ('', f'scale={width}:-1:flags=lanczos,')[bool(width)]
