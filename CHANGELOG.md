@@ -2,6 +2,40 @@
 
 * ...
 
+## 0.3.0
+
+* Improved gif encoding to reduce file size.
+
+  * Reduced color palette to 128 colors.
+  * Clamped maximum resolution to 2160px wide.
+
+    * _High Quality:_ Comp Width clamped to 2160px
+    * _Medium Quality:_ Comp Width * 0.5 clamped to 1080px
+    * _Low Quality:_ Comp Widget * 0.25 clamped to 540px
+
+  * Default quality set to _Medium Quality._
+
+* Improved mp4 encoding.
+
+  * Pixel format is now yuv420p. Mp4s should now load properly in Windows 10 built-in media players.
+  * Audio codec is now AAC. This should prevent errors when the audio track in AE is not mp4 compatible.
+
+* Fixed error encoding mp4 with audio. The audio codec for mp4 is now AAC.
+* Further improvements to report formatting.
+* Refresh the available output modules each time the dialog is opened.
+* ShotGird context is now updated just before rendering. This allows artists to open scenes using either the AE File Open dialog or the SG File Open dialog.
+* Defer loading UI until menu action is called. Prevents AE from flagging scene as changed.
+
+## 0.2.2
+
+* Fix error while retrieving output module templates.
+* Improved html reporting.
+* Suppress dropEvent errors in AE2021.
+
+## 0.2.1
+
+* Fix Show in ShotGrid link when Version updated.
+
 ## 0.2.0
 
 * Adjusted UI design to facilitate adding tools to the footer after a render completes.
