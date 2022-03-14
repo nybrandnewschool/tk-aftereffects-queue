@@ -2,6 +2,11 @@
 
 * ...
 
+## 0.3.1
+
+* Fixed issue on Mac OS where outputModule paths were not being set correctly.
+* Improved reported of task exceptions and errors.
+
 ## 0.3.0
 
 * Improved gif encoding to reduce file size.
