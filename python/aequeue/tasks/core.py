@@ -571,7 +571,7 @@ def generate_report(runner):
                 record.exc_info = record.exc_text = record.stack_info = None
                 record.message = str(einfo[1])
 
-                formatted_exc = ''.join(traceback.format_tb(einfo[2]))
+                formatted_exc = ''.join(traceback.format_exception(*einfo))
                 report.append(formatters[record.type].format(record))
                 report.append(f'\n{formatted_exc}\n')
 
@@ -607,7 +607,7 @@ def generate_html_report(runner):
             record.exc_info = record.exc_text = record.stack_info = None
             record.message = str(einfo[1])
 
-            formatted_exc = ''.join(traceback.format_tb(einfo[2]))
+            formatted_exc = ''.join(traceback.format_exception(*einfo))
             lines.append(formatter.format(record))
             lines.append(f'<pre style="color: #EB5757;">{formatted_exc}</pre>')
 

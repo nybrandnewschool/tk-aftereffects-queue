@@ -15,8 +15,8 @@ class Copy(Task):
         super(Copy, self).__init__(*args, **kwargs)
 
     def execute(self):
-        self.log.debug('Ensuring folder "%s" exists...', self.dst_file)
         dst_dir = os.path.dirname(self.dst_file)
+        self.log.debug('Ensuring folder "%s" exists...', dst_dir)
         if not os.path.exists(dst_dir):
             self.log.debug('Creating dst folder...')
             os.makedirs(dst_dir)
