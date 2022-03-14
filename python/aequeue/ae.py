@@ -242,7 +242,29 @@ class AfterEffectsEngineWrapper(object):
 
         self._validate_file_info(data)
         obj = self._to_output_module(obj)
-        obj.setSettings({'Output File Info': data})
+
+        if sys.platform == 'darwin':
+            full_path = data.get('Full Flat Path')
+            if not full_path:
+                base_path = data.get('Base Path', '')
+                sub_path = data.get('Subfolder Path', '')
+                file_name = data.get('File Name', '')
+                file_template = data.get('File Template', '')
+                full_path = '/'.join([base_path, sub_path, file_name or file_template])
+            self.set_file(obj, full_path)
+        else:
+            obj.setSettings({'Output File Info': data})
+
+    def set_file(self, obj, path):
+        '''Set the File object for the given RenderQueueItem or OutputModule.
+
+        Arguments:
+            obj (ProxyWrapper): ProxyWrapper of type RenderQueueItem or OutputModule
+            path (str): Full path to output file location.
+        '''
+
+        obj = self._to_output_module(obj)
+        obj.file = self.adobe.File(path)
 
     def get_file_info(self, obj):
         '''Get the Output File Info for the given RenderQueueItem or OutputModule.
