@@ -30,10 +30,23 @@ configuration:
     allows_empty: False
   copy_to_review_area:
     type: bool
-    default_value: True
+    default_value: False
     description: A flag that determines whether or not Encoded renders will
                  be copied to the template_review_area before uploading to
                  SG for review.
+  move_to_review_area:
+    type: bool
+    default_value: True
+    description: A flag that determines whether or not Encoded renders will
+                 be moved to the template_review_area before uploading to
+                 SG for review. This takes precedence over the copy_to_review_area
+                 option.
+  publish_on_upload:
+    type: bool
+    default_value: False
+    description: When True, create a Publish in ShotGrid for the rendered media. Link
+      the Version created in ShotGrid to the Publish. Publish only occurs when the
+      "Upload to ShotGrid" checkbox is enabled in the UI.
   command_name:
     type: str
     default_value: Render Queue...

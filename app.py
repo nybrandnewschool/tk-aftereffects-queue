@@ -43,6 +43,9 @@ class AEQueueApplication(sgtk.platform.Application):
             self.show_app,
         )
 
+        # Set initial values
+        self._reset_on_context_change = True
+
     def ensure_ffmpeg_installed(self):
         if not is_ffmpeg_installed():
             msg = (
@@ -146,6 +149,18 @@ class AEQueueApplication(sgtk.platform.Application):
         template_review_area?'''
 
         return self.get_setting('copy_to_review_area')
+
+    def get_publish_on_upload(self):
+        '''Should encoded media be copied to the review area defined by
+        template_review_area?'''
+
+        return self.get_setting('publish_on_upload')
+
+    def get_move_to_review(self):
+        '''Should encoded media be copied to the review area defined by
+        template_review_area?'''
+
+        return self.get_setting('move_to_review_area')
 
     def send_is_available(self):
         '''Is the send_report_hook available?'''
