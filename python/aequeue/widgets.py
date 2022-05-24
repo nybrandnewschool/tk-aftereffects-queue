@@ -50,8 +50,10 @@ class Theme:
         const.Queued: color_codes['on_surface'],
         const.Rendering: color_codes['yellow'],
         const.Encoding: color_codes['red'],
+        const.Moving: color_codes['purple'],
         const.Copying: color_codes['purple'],
         const.Uploading: color_codes['blue'],
+        const.Publishing: color_codes['blue'],
         const.Done: color_codes['green'],
         # Statuses
         const.Waiting: color_codes['on_surface'],
@@ -125,9 +127,17 @@ class SectionHeader(QtWidgets.QWidget):
             $h1;
             color: $copying;
         }
+        QLabel[status="moving"]{
+            $h1;
+            color: $moving;
+        }
         QLabel[status="uploading"]{
             $h1;
             color: $uploading;
+        }
+        QLabel[status="copying"]{
+            $h1;
+            color: $copying;
         }
         QLabel[status="done"]{
             $h1;
@@ -432,8 +442,14 @@ class Status(QtWidgets.QWidget):
         QWidget[status="copying"]{
             background: $copying;
         }
+        QWidget[status="moving"]{
+            background: $moving;
+        }
         QWidget[status="uploading"]{
             background: $uploading;
+        }
+        QWidget[status="publishing"]{
+            background: $publishing;
         }
         QWidget[status="done"]{
             background: $done;
