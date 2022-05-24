@@ -4,10 +4,12 @@
 Queued = 'queued'
 Rendering = 'rendering'
 Encoding = 'encoding'
+Moving = 'moving'
 Copying = 'copying'
 Uploading = 'uploading'
+Publishing = 'publishing'
 Done = 'done'
-StepList = [Queued, Rendering, Encoding, Copying, Uploading, Done]
+StepList = [Queued, Rendering, Encoding, Moving, Copying, Uploading, Publishing, Done]
 
 # Flow/Task Statuses
 Waiting = 'waiting'  # Task/Run is waiting to run.
