@@ -9,9 +9,11 @@ Small ffmpeg library to facilitate progress reporting.
 import glob
 import io
 import os
+import random
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 
@@ -193,6 +195,93 @@ def modify_sequence(in_file, out_file, scale=1, **kwargs):
         out_file,
         **kwargs
     )
+
+
+def create_thumbnail(in_file, out_file, frame="middle"):
+    '''Grab a single frame from a video.
+
+    Arguments:
+        in_file (str): Path to input video or sequence.
+        out_file (str): Path to output image.
+        frame (int, str): Frame number as int or "start", "middle", "end", "random".
+    '''
+
+    start, end = get_frame_range(in_file)
+    if frame == "start":
+        frame = start
+    elif frame == "middle":
+        frame = start + int(((end - start) * 0.5))
+    elif frame == "end":
+        frame = end
+    elif frame == "random":
+        frame = random.choice(range(start, end))
+    else:
+        frame = frame
+
+    proc = encode(
+        "-i", in_file,
+        "-vf", f"select=eq(n\\,{frame})",
+        "-frames:v", "1",
+        "-y",
+        out_file,
+    )
+    success = watch(proc)
+    if not success:
+        raise RuntimeError(f'Failed to extract frame {frame} from {in_file}')
+
+    return out_file
+
+
+def create_filmstrip(in_file, out_file, frames=50, frame_width=240, tile="horizontal"):
+    '''Convert a video to an image filmstrip.
+
+    Arguments:
+        in_file (str): Path to input video or sequence.
+        out_file (str): Path to output image.
+        frames (int): Number of frames to place in filmstrip. Defaults to 50.
+        frame_width (int): Width of a single frame in the filmstrip. Defaults to 240.
+        tile (str): "horizontal" or "vertical".
+    '''
+
+    start, end = get_frame_range(in_file)
+    fps = get_fps(in_file)
+    duration = end - start
+    rate = (frames / (duration / fps))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_files = os.path.join(tmpdir, "tmp.%04d.jpeg")
+
+        # Extract images
+        proc = encode(
+            "-i", in_file,
+            "-r", f"{rate}",
+            "-vf", f'scale={frame_width}:-1',
+            "-frames:v", f"{frames}",
+            "-f", "image2",
+            tmp_files,
+        )
+        success = watch(proc)
+        if not success:
+            raise RuntimeError('Failed to extract frames for filmstrip.')
+
+        # Create filmstrip
+        num_images = len(os.listdir(tmpdir))
+        proc = encode(
+            "-i", tmp_files,
+            "-vf", [f'tile=1x{num_images}', f'tile={num_images}x1'][tile=="horizontal"],
+            "-an",
+            "-vsync" ,"0",
+            "-qscale:v", "2",
+            "-pix_fmt", "yuvj420p",
+            "-f", "image2",
+            "-y",
+            out_file,
+        )
+        success = watch(proc)
+        if not success:
+            raise RuntimeError('Failed to arrange frames in filmstrip.')
+
+    return out_file
 
 
 def watch(
@@ -413,21 +502,20 @@ def get_frame_range(in_file):
         return frame_numbers[0], frame_numbers[-1]
 
     # Probe framerange from video file using ffmpeg
-    cmd = [
-        'ffmpeg',
-        '-i', in_file,
-        '-map', '0:v:0',
-        '-c', 'copy',
-        '-f', 'null',
-        '-'
-    ]
-    p = subprocess.Popen(
-        cmd,
+    proc = subprocess.Popen(
+        [
+            'ffmpeg',
+            '-i', in_file,
+            '-map', '0:v:0',
+            '-c', 'copy',
+            '-f', 'null',
+            '-'
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
     )
-    out, _ = p.communicate()
+    out, _ = proc.communicate()
 
     frame = parse_frame(out)
     if not frame:
@@ -440,14 +528,40 @@ def parse_frame(string):
     '''Grab the frame number from a line of the ffmpeg log.
 
     Returns:
-        int - The frame number
-        OR
-        None - When parse failed
+        int or None: The frame number or None when the last frame can not be determined
     '''
 
-    matches = re.findall(r'frame=\s+(\d+)', str(string))
+    matches = re.findall(r'frame=\s+(\d+)', string)
     if matches:
         return int(matches[-1])
+
+
+def get_fps(in_file, default=24):
+    '''Get the FPS of a video or image sequence.'''
+
+    proc = subprocess.Popen(
+        [
+            'ffmpeg',
+            '-i', in_file,
+            '-map', '0:v:0',
+            '-c', 'copy',
+            '-f', 'null',
+            '-'
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True,
+    )
+    out, _ = proc.communicate()
+    return parse_fps(out) or default
+
+
+def parse_fps(string):
+    '''Grab FPS from a line in the ffmpeg log.'''
+
+    match = re.search(r'Stream #0:0(.*)', string)
+    if match:
+        return int(match.group(1).split('fps,')[0].split(',')[-1].strip())
 
 
 def on_start_default(proc):
