@@ -1,12 +1,12 @@
-<div align="center">
-
 # AEQueue (tk-aftereffects-queue)
-**An After Effects render queue for ShotGrid Toolkit.**
+[![stable](https://img.shields.io/badge/version-0.4.0-green.svg)](https://semver.org)</br>
+*Developed at [Brand New School](https://brandnewschool.com).*
 
-[![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/nybrandnewschool/tk-aftereffects-queue?label=Version)](https://github.com/nybrandnewschool/tk-aftereffects-queue/releases) *Developed at [Brand New School](https://brandnewschool.com).*
+An After Effects render queue for ShotGrid Toolkit.
 
-<img src="https://raw.github.com/nybrandnewschool/tk-aftereffects-queue/master/res/aequeue_demo.gif"/>
-</div>
+<p align="center">
+    <img src="https://raw.github.com/nybrandnewschool/tk-aftereffects-queue/master/res/aequeue_demo.gif"/>
+</p>
 
 ## Features
 - Render multiple comps to locations defined by templates in your Toolkit config.

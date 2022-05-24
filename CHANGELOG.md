@@ -1,6 +1,12 @@
 ## Unreleased Changes
 
-* ...
+## 0.4.0
+
+* Added *move_to_review_area* option. When enabled this will move encoded media to the
+  review area, rather than copying the files.
+* Added *publish_on_upload* option. When enabled this will register a PublishedFile
+  linked to the Version file in ShotGrid. The Publish task also generates a thumbnail
+  and filmstrip for the PublishedFile.
 
 ## 0.3.1
 
