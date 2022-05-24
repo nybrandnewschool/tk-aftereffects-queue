@@ -13,7 +13,9 @@ from .tasks.core import LogFormatter, Runner, Flow, generate_html_report, genera
 from .tasks.aerender import AERenderComp, BackgroundAERenderComp
 from .tasks.encode import EncodeMP4, EncodeGIF
 from .tasks.copy import Copy
+from .tasks.move import Move
 from .tasks.sgupload import SGUploadVersion
+from .tasks.sgpublish import SGPublish
 from .tasks.generic import ErrorTask
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 
@@ -243,7 +245,9 @@ class Application(QtCore.QObject):
         sg_fields = sg_ctx.as_template_fields(work_template)
 
         # Get the rest of the required flow data...
+        publish_on_upload = self.tk_app.get_publish_on_upload()
         copy_to_review = self.tk_app.get_copy_to_review()
+        move_to_review = self.tk_app.get_move_to_review()
         render_folder = self.tk_app.get_render_template().apply_fields(sg_fields)
         review_folder = self.tk_app.get_review_template().apply_fields(sg_fields)
         output_data = self.generate_output_data(item, options.module, render_folder)
@@ -284,6 +288,7 @@ class Application(QtCore.QObject):
 
             # Add Encode MP4 Task
             mp4_path = paths.normalize(render_folder, item + '.mp4')
+            mp4_upload_path = mp4_path
             if options.mp4:
                 EncodeMP4(
                     src_file=output_path,
@@ -302,9 +307,18 @@ class Application(QtCore.QObject):
                     framerate=framerate,
                 )
 
-            # Add Copy MP4 to review folder Task
-            if copy_to_review and options.mp4:
+            # Add Move MP4 to review folder Task
+            if move_to_review and options.mp4:
                 review_path = paths.normalize(review_folder, item + '.mp4')
+                mp4_upload_path = review_path
+                Move(
+                    src_file=mp4_path,
+                    dst_file=review_path,
+                    step=const.Moving + ' MP4',
+                )
+            elif copy_to_review and options.mp4:
+                review_path = paths.normalize(review_folder, item + '.mp4')
+                mp4_upload_path = review_path
                 Copy(
                     src_file=mp4_path,
                     dst_file=review_path,
@@ -312,7 +326,14 @@ class Application(QtCore.QObject):
                 )
 
             # Add Copy GIF to review folder Task
-            if copy_to_review and options.gif:
+            if move_to_review and options.gif:
+                review_path = paths.normalize(review_folder, item + '.gif')
+                Move(
+                    src_file=gif_path,
+                    dst_file=review_path,
+                    step=const.Moving + ' GIF',
+                )
+            elif copy_to_review and options.gif:
                 review_path = paths.normalize(review_folder, item + '.gif')
                 Copy(
                     src_file=gif_path,
@@ -322,11 +343,20 @@ class Application(QtCore.QObject):
 
             # Add SG Upload Version Task
             if options.sg:
-                SGUploadVersion(
-                    src_file=(output_path, mp4_path)[options.mp4],
+                version_task = SGUploadVersion(
+                    src_file=(output_path, mp4_upload_path)[options.mp4],
                     sg_ctx=sg_ctx,
                     comment=options.sg_comment,
                 )
+
+                # Register a publish
+                if publish_on_upload:
+                    SGPublish(
+                        file=output_path,
+                        thumbnail_src_file=(None, mp4_upload_path)[options.mp4],
+                        sg_ctx=sg_ctx,
+                        version_task=version_task,
+                    )
 
             flow.set_context(flow_ctx)
 

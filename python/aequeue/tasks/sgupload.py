@@ -74,6 +74,18 @@ class SGUploadVersion(Task):
     def create_version(self, version_data):
         '''Get existing version or create a new one.'''
 
+        return_fields = [
+            'id',
+            'code',
+            'description',
+            'entity',
+            'project',
+            'sg_path_to_frames',
+            'sg_status_list',
+            'sg_task',
+            'user',
+        ]
+
         version = self.sg.find_one(
             'Version',
             filters=[
@@ -82,14 +94,14 @@ class SGUploadVersion(Task):
                 ['sg_task', 'is', version_data['sg_task']],
                 ['entity', 'is', version_data['entity']],
             ],
-            fields=['id', 'code', 'sg_path_to_frames', 'project', 'sg_task', 'entity'],
+            fields=return_fields,
         )
 
         if not version:
             version = self.sg.create(
                 'Version',
                 version_data,
-                return_fields=['id', 'code', 'sg_path_to_frames', 'project', 'sg_task', 'entity'],
+                return_fields=return_fields,
             )
         else:
             self.sg.update('Version', version['id'], version_data)

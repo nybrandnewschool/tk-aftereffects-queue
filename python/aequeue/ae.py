@@ -296,6 +296,9 @@ class AfterEffectsEngineWrapper(object):
             'padding_str': '',
             'is_sequence': False,
             'extension': file_path.split('.')[-1],
+            'version': None,
+            'version_number': 1,
+            'published_file_type': None,
         }
 
         # Check if path represents image sequence
@@ -304,5 +307,16 @@ class AfterEffectsEngineWrapper(object):
             info['is_sequence'] = True
             info['padding'] = len(sequence_match.group(1))
             info['padding_str'] = sequence_match.group(0)
+
+        # Check if file is versioned
+        version_match = re.search(r'v(\d+)', file_path)
+        if version_match:
+            info['version_number'] = int(version_match.group(1))
+            info['version'] = version_match.group(0)
+
+        if info['extension'] in ['avi', 'mov', 'mp4', 'mpeg4']:
+            info['published_file_type'] = 'Movie'
+        else:
+            info['published_file_type'] = 'Rendered Image'
 
         return info
