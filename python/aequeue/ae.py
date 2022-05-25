@@ -77,7 +77,6 @@ class AfterEffectsEngineWrapper(object):
             ]
         }[sys.platform]
         version = self.engine.host_info['version']
-        version = '20' + version.split('.')[0]
         for application_template in application_templates:
             path = application_template.format(version=version)
             if os.path.exists(path):

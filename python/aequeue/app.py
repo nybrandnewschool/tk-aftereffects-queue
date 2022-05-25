@@ -77,7 +77,7 @@ class Application(QtCore.QObject):
         self.tk_app = tk_app
         self.log = tk_app.logger
         self.engine = ae.AfterEffectsEngineWrapper(tk_app.engine)
-        self.host_version = '20' + self.tk_app.engine.host_info['version'].split('.')[0]
+        self.host_version = self.tk_app.engine.host_info['version']
         self.delay = DelayedQueue(self.log, self)
         if self.ui:
             self.ui.setWindowTitle(tk_app.get_window_title())
