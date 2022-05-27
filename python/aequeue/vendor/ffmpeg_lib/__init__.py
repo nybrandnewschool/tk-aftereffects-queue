@@ -561,7 +561,7 @@ def parse_fps(string):
 
     match = re.search(r'Stream #0:0(.*)', string)
     if match:
-        return int(match.group(1).split('fps,')[0].split(',')[-1].strip())
+        return float(match.group(1).split('fps,')[0].split(',')[-1].strip())
 
 
 def on_start_default(proc):
