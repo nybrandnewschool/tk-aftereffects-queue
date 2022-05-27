@@ -40,6 +40,7 @@ class Application(QtCore.QObject):
         self.ui.queue.drop.connect(self.drop_queue)
         self.ui.render_button.clicked.connect(self.render)
         self.ui.send_button.clicked.connect(self.send_report)
+        self.ui.cancel_button.clicked.connect(self.cancel)
         self.ui.closeEvent = self.closeEvent
 
         # Initialize tk_app dependent parts
@@ -211,6 +212,9 @@ class Application(QtCore.QObject):
         except Exception:
             self.log.exception('Failed to send error report.')
             self.ui.show_error('Failed to send error report.')
+
+    def cancel(self):
+        self.runner.request(const.Cancelled)
 
     def render(self):
         if not self.items:
