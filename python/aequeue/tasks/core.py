@@ -1,12 +1,11 @@
 import logging
 import re
 import sys
-import time
 import threading
 import traceback
 import uuid
 from collections import defaultdict, deque
-from queue import Queue
+from queue import Queue, Empty
 
 from .. import const
 from ..vendor.Qt import QtCore, QtWidgets
@@ -29,6 +28,10 @@ __all__ = [
 
 
 _stack = defaultdict(deque)
+
+
+def sleep(seconds=1):
+    return QtCore.QThread.sleep(seconds)
 
 
 def push(stack, obj):
@@ -138,6 +141,8 @@ class Log(QtCore.QObject):
 class TaskSignals(QtCore.QObject):
 
     status_changed = QtCore.Signal(dict)
+    started = QtCore.Signal()
+    finished = QtCore.Signal()
 
 
 class Task(QtCore.QRunnable):
@@ -145,6 +150,7 @@ class Task(QtCore.QRunnable):
 
     step = 'Task'
     execute_in_main = False
+    pool = None
 
     def __init__(self, step=None, flow=None, parent=None):
         super(Task, self).__init__(parent)
@@ -205,7 +211,7 @@ class Task(QtCore.QRunnable):
 
     def request(self, status):
         self.log.debug('%s requested...' % status.upper())
-        self.status_request = const.Cancelled
+        self.status_request = status
 
     def accept(self, status):
         self.log.debug('%s accepted...' % status.upper())
@@ -215,7 +221,7 @@ class Task(QtCore.QRunnable):
         while True:
             if self.status in const.DoneList:
                 return self.status
-            time.sleep(1)
+            sleep()
 
     def run(self):
         self.set_status(const.Running)
@@ -241,14 +247,11 @@ class SyncTask(Task):
     execute_in_main = True
 
 
-class FlowSignals(QtCore.QObject):
+class Flow(QtCore.QThread):
+    '''An object used to sequentially execute a list of tasks.'''
 
     status_changed = QtCore.Signal(str)
     step_changed = QtCore.Signal(dict)
-
-
-class Flow(QtCore.QRunnable):
-    '''An object used to sequentially execute a list of tasks.'''
 
     def __init__(self, name, runner=None, parent=None):
         super(Flow, self).__init__(parent)
@@ -264,7 +267,6 @@ class Flow(QtCore.QRunnable):
         self.tasks_by_id = {}
         self.current_task = None
         self.pool = QtCore.QThreadPool.globalInstance()
-        self.signals = FlowSignals()
 
         self.log_records = []
         self.log = Log(str(self), record_type='flow')
@@ -350,11 +352,11 @@ class Flow(QtCore.QRunnable):
                 % (self.status.upper(), status.upper())
             )
         self.status = status
-        self.signals.status_changed.emit(status)
+        self.status_changed.emit(status)
 
     def set_step(self, step):
         self.step = step
-        self.signals.step_changed.emit({
+        self.step_changed.emit({
             'flow': self.name,
             'step': self.step,
             'progress': self.progress,
@@ -365,17 +367,12 @@ class Flow(QtCore.QRunnable):
 
     def request(self, status):
         self.log.debug('%s requested...' % status.upper())
-        self.status_request = const.Cancelled
+        self.status_request = status
 
     def accept(self, status):
         self.log.debug('%s accepted...' % status.upper())
         self.set_status(status)
-
-    def wait(self):
-        while True:
-            if self.status in const.DoneList:
-                return self.status
-            time.sleep(1)
+        self.set_step(status)
 
     def await_task(self, task):
         while True:
@@ -384,7 +381,7 @@ class Flow(QtCore.QRunnable):
                 task.wait()
             if task.status in const.DoneList:
                 return task.status
-            time.sleep(1)
+            sleep()
 
     def await_dependencies(self):
         self.log.debug('Waiting for requirements...')
@@ -408,7 +405,7 @@ class Flow(QtCore.QRunnable):
                 self.log.debug('Upstream Dependencies satisfied...')
                 return True
 
-            time.sleep(1)
+            sleep()
 
     def run(self):
         # Wait for all dependencies to finish
@@ -430,11 +427,14 @@ class Flow(QtCore.QRunnable):
 
             # Start next task
             self.step = task.step
+
             self.log.debug('Setting context...')
             self.context['task'] = task
             task.set_context(self.context)
+
             self.log.debug('Starting...')
-            self.pool.start(task)
+            pool = task.pool or self.pool
+            pool.start(task)
 
             # Wait for task to finish
             upstream_status = self.await_task(task)
@@ -501,14 +501,15 @@ class Runner(QtCore.QThread):
         self.log.debug('Adding flow %s', flow)
         if requirements:
             flow.requires(requirements)
+        flow.pool = self.pool
         flow.log.prepare_record.connect(self.log.prepare_record.emit)
         flow.log.emit_record.connect(self.log.emit_record.emit)
-        flow.signals.step_changed.connect(self.step_changed.emit)
+        flow.step_changed.connect(self.step_changed.emit)
         self.flows.append(flow)
 
     def request(self, status):
         self.log.debug('%s requested...' % status.upper())
-        self.status_request = const.Cancelled
+        self.status_request = status
 
     def accept(self, status):
         self.log.debug('%s accepted...' % status.upper())
@@ -523,25 +524,25 @@ class Runner(QtCore.QThread):
         self.status = status
         self.status_changed.emit(status)
 
+    def wait_for_finished_flows(self, time=0.01):
+        return all([flow.wait(time) for flow in self.flows])
+
     def run(self):
         self.set_status(const.Running)
 
         # Start all flows
         for flow in self.flows:
-            self.pool.start(flow)
+            flow.start()
 
         # Wait for flows to finish
-        while True:
+        while not self.wait_for_finished_flows():
             if self.status_request == const.Cancelled:
                 for flow in self.flows:
                     flow.request(const.Cancelled)
                     flow.wait()
                 return self.accept(const.Cancelled)
 
-            if all([flow.status in const.DoneList for flow in self.flows]):
-                break
-
-            time.sleep(1)
+            sleep()
 
         if any([flow.status == const.Failed for flow in self.flows]):
             self.set_status(const.Failed)
@@ -684,6 +685,8 @@ class FunctionCaller(QtCore.QObject):
     FunctionEvent's result queue.
     '''
 
+    event_processed = QtCore.Signal()
+
     def event(self, event):
         event.accept()
         result = None
@@ -695,6 +698,8 @@ class FunctionCaller(QtCore.QObject):
         finally:
             event.result.put((result, exc_info))
 
+        self.event_processed.emit()
+
 
 function_caller = FunctionCaller()
 
@@ -702,15 +707,23 @@ function_caller = FunctionCaller()
 def call_in_main(fn, *args, **kwargs):
     '''Calls a function in the MainThread and returns the result.'''
 
+    from sgtk.platform import current_engine
+    engine = current_engine()
+
     if threading.current_thread().name == 'MainThread':
         return fn(*args, **kwargs)
 
     # Post event for function_caller to execute in main thread
     event = FunctionEvent(fn, args, kwargs)
-    event_loop = QtWidgets.QApplication.instance()
-    event_loop.postEvent(function_caller, event)
+    app = QtWidgets.QApplication.instance()
+    app.postEvent(function_caller, event)
 
-    # Wait for result to turn up in result queue
+    # Await event_processed signal
+    event_loop = QtCore.QEventLoop()
+    function_caller.event_processed.connect(event_loop.quit)
+    event_loop.exec_()
+
+    # Get result
     result, exc_info = event.result.get()
     if exc_info:
         exc_type, exc_value, exc_traceback = exc_info
