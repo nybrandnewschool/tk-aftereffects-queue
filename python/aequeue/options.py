@@ -3,7 +3,17 @@ from collections import namedtuple
 
 RenderOptionsType = namedtuple(
     'RenderOptions',
-    ['module', 'mp4', 'mp4_quality', 'gif', 'gif_quality', 'sg', 'sg_comment'],
+    [
+        'module',
+        'mp4',
+        'mp4_quality',
+        'gif',
+        'gif_quality',
+        'sg',
+        'sg_comment',
+        'bg',
+        'bg_threads',
+    ],
 )
 
 

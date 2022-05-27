@@ -1,6 +1,7 @@
 import re
 import sys
 import textwrap
+from multiprocessing import cpu_count
 from weakref import WeakValueDictionary
 from string import Template
 
@@ -58,8 +59,8 @@ class Theme:
         # Statuses
         const.Waiting: color_codes['on_surface'],
         const.Running: color_codes['yellow'],
-        const.Cancelled: color_codes['dark'],
-        const.Revoked: color_codes['dark'],
+        const.Cancelled: color_codes['yellow'],
+        const.Revoked: color_codes['purple'],
         const.Failed: color_codes['red'],
         const.Success: color_codes['green'],
     }
@@ -79,6 +80,8 @@ class Theme:
         ),
         'border': 'border: 1px solid $on_surface',
         'border_highlight': 'border: 1px solid $on_surface_highlight',
+        'border_up_button': 'border-width: 1px 1px 0px 0px',
+        'border_dn_button': 'border-width: 0px 0px 1px 1px',
         'rounded': 'border-radius: 3px',
         'border_thick': 'border: 2px solid $on_surface',
         'outline': 'outline: 1px solid $on_surface_highlight'
@@ -153,6 +156,11 @@ class SectionHeader(QtWidgets.QWidget):
             $h1;
             font-weight: bold;
             color: $success;
+        }
+        QLabel[status="cancelled"]{
+            $h1;
+            font-weight: bold;
+            color: $cancelled;
         }
     ''')
 
@@ -417,6 +425,101 @@ class LineEdit(QtWidgets.QLineEdit):
             self.setPlaceholderText(placeholder)
 
         self.textChanged.connect(lambda: self.style().polish(self))
+        self.setFixedHeight(24)
+        self.setStyleSheet(self.css)
+
+
+class SpinBox(QtWidgets.QSpinBox):
+
+    css = Theme.StyleSheet('''
+        QSpinBox {
+            $p;
+            $border;
+            $rounded;
+            padding-left: 10px;
+            padding-right: 20px;
+            background: $dark;
+            color: $light;
+        }
+        QSpinBox:focus {
+            $border_highlight;
+        }
+        QSpinBox:disabled {
+            border: 0;
+            color: $on_surface_highlight;
+        }
+        QSpinBox:hover {
+            $border_highlight;
+        }
+        QSpinBox::up-button {
+            subcontrol-origin: border;
+            subcontrol-position: top right;
+            top: 1px;
+            right: 1px;
+            width: 20px;
+            background: transparent;
+            border-top-right-radius: 3px;
+            $border_up_button;
+            border-color: $on_surface;
+        }
+        QSpinBox::up-button:hover {
+            background: $surface_highlight;
+            border-top-right-radius: 3px;
+            $border_up_button;
+            border-color: $on_surface_highlight;
+        }
+        QSpinBox::up-button:pressed {
+            background-color: $dark;
+            border-top-right-radius: 3px;
+            $border_up_button;
+            border-color: $on_surface;
+        }
+        QSpinBox::up-arrow {
+            image: url("$caret_up");
+            width: 9px;
+            height: 9px;
+        }
+        QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off {
+           image: url("$caret_up_disabled");
+        }
+
+        QSpinBox::down-button {
+            subcontrol-origin: border;
+            subcontrol-position: bottom right;
+            bottom: 1px;
+            right: 1px;
+            width: 20px;
+            background: transparent;
+            border-bottom-right-radius: 3px;
+            $border_dn_button;
+            border-color: $on_surface;
+        }
+        QSpinBox::down-button:hover {
+            background: $surface_highlight;
+            border-bottom-right-radius: 3px;
+            $border_dn_button;
+            border-color: $on_surface_highlight;
+        }
+        QSpinBox::down-button:pressed {
+            background-color: $dark;
+            border-bottom-right-radius: 3px;
+            $border_dn_button;
+            border-color: $on_surface;
+        }
+        QSpinBox::down-arrow {
+            image: url("$caret_down");
+            width: 9px;
+            height: 9px;
+        }
+        QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {
+           image: url("$caret_down_disabled");
+        }
+
+    ''')
+
+    def __init__(self, placeholder=None, parent=None):
+        super(SpinBox, self).__init__(parent)
+
         self.setFixedHeight(24)
         self.setStyleSheet(self.css)
 
@@ -990,6 +1093,19 @@ class Options(QtWidgets.QWidget):
         self.sg_layout.addWidget(self.sg)
         self.sg_layout.addWidget(self.sg_comment)
 
+        self.bg = CheckBox()
+        self.bg_threads = SpinBox()
+        self.bg.stateChanged.connect(self.bg_threads.setEnabled)
+        self.bg_threads.setMinimum(1)
+        self.bg_threads.setMaximum(cpu_count())
+        self.bg_threads.setValue(int(cpu_count() * 0.5))
+        self.bg_threads.setSuffix(' Threads')
+        self.bg_layout = QtWidgets.QHBoxLayout()
+        self.bg_layout.setSpacing(12)
+        self.bg_layout.setStretch(1, 1)
+        self.bg_layout.addWidget(self.bg)
+        self.bg_layout.addWidget(self.bg_threads)
+
         self.layout = QtWidgets.QFormLayout()
         self.layout.setContentsMargins(20, 4, 20, 4)
         self.layout.setVerticalSpacing(12)
@@ -998,6 +1114,7 @@ class Options(QtWidgets.QWidget):
         self.layout.addRow(Label('Output MP4'), self.mp4_layout)
         self.layout.addRow(Label('Output GIF'), self.gif_layout)
         self.layout.addRow(Label('Upload to ShotGrid'), self.sg_layout)
+        self.layout.addRow(Label('BG Render (Experimental)'), self.bg_layout)
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
@@ -1011,6 +1128,8 @@ class Options(QtWidgets.QWidget):
             'gif_quality': self.gif_quality.currentText(),
             'sg': self.sg.isChecked(),
             'sg_comment': self.sg_comment.text(),
+            'bg': self.bg.isChecked(),
+            'bg_threads': self.bg_threads.value(),
         }
 
     def set(self, **options):
@@ -1024,6 +1143,8 @@ class Options(QtWidgets.QWidget):
                 control.setText(v)
             elif isinstance(control, CheckBox):
                 control.setChecked(v)
+            elif isinstance(control, SpinBox):
+                control.setValue(v)
             else:
                 raise AttributeError(
                     'Could not set "%s" to %r. Control type %s not recognized.'
@@ -1110,6 +1231,9 @@ class StatusIndicator(Movie):
             self.start()
         elif status == const.Success:
             self.queue(resources.get_path('Success_20.gif'))
+            self.start()
+        elif status == const.Cancelled:
+            self.queue(resources.get_path('Cancelled_20.gif'))
             self.start()
         else:
             raise ValueError('No status animation available for: %s' % status)
@@ -1273,7 +1397,7 @@ class Toast(QtWidgets.QWidget):
         return QtCore.QSize(9999, 46)
 
 
-class Window(QtWidgets.QWidget):
+class Window(QtWidgets.QDialog):
 
     css = Theme.StyleSheet('''
         * {
@@ -1293,9 +1417,13 @@ class Window(QtWidgets.QWidget):
         self.reset_button.setVisible(False)
         self.queue_button = Tool(resources.get_path('arrow_download.png'))
         self.queue_button.setToolTip('Add selected comps to queue...')
+        self.cancel_button = Tool(resources.get_path('pause.png'))
+        self.cancel_button.setToolTip('Cancel!')
+        self.cancel_button.setVisible(False)
         self.queue_header = SectionHeader('QUEUE')
         self.queue_header.right.addWidget(self.queue_button)
         self.queue_header.right.addWidget(self.reset_button)
+        self.queue_header.right.addWidget(self.cancel_button)
 
         # Toast - Sliding notification that overlays on top of Header
         self.toast = Toast('info', resources.get_path('info.png'), '', 3000)
@@ -1319,7 +1447,13 @@ class Window(QtWidgets.QWidget):
         self.options_visible = True
         self.options = Options()
         self.options.setMinimumHeight(0)
-        self.options.set(mp4=True, gif=True, sg=True)
+        self.options.set(
+            mp4=True,
+            gif=True,
+            sg=True,
+            bg=False,
+            bg_threads=int(cpu_count() * 0.5),
+        )
         self.options_header = SectionHeader('OPTIONS')
         self.options_header.right.addWidget(self.status_indicator)
         self.options_header.right.addWidget(self.send_button)
@@ -1350,10 +1484,12 @@ class Window(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        self.layout.setStretch(1, 1)
         self.layout.addLayout(self.top_stack)
         self.layout.addLayout(self.body_stack)
         self.layout.addLayout(self.bot_stack)
 
+        self.show_options()
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
@@ -1371,6 +1507,7 @@ class Window(QtWidgets.QWidget):
             self.render_button.setEnabled(True)
             self.queue_button.setVisible(True)
             self.reset_button.setVisible(False)
+            self.cancel_button.setVisible(False)
             self.status_indicator.setVisible(False)
             self.report_button.setVisible(False)
             self.send_button.setVisible(False)
@@ -1382,15 +1519,28 @@ class Window(QtWidgets.QWidget):
             self.render_button.setEnabled(False)
             self.queue_button.setVisible(False)
             self.reset_button.setVisible(False)
+            self.cancel_button.setVisible(True)
             self.status_indicator.setVisible(True)
             self.report_button.setVisible(False)
             self.send_button.setVisible(False)
             self.hide_options()
+        elif status == const.Cancelled:
+            self.options_header.transition_label('CANCELLED')
+            self.options.setEnabled(False)
+            self.render_button.setEnabled(False)
+            self.reset_button.setVisible(True)
+            self.cancel_button.setVisible(False)
+            self.status_indicator.setVisible(True)
+            self.report_button.setVisible(True)
+            self.report_button.set_icon(resources.get_path('report.png'))
+            self.report_button.setToolTip('View Report')
+            self.send_button.setVisible(False)
         elif status == const.Success:
             self.options_header.transition_label('SUCCESS')
             self.options.setEnabled(False)
             self.render_button.setEnabled(False)
             self.reset_button.setVisible(True)
+            self.cancel_button.setVisible(False)
             self.status_indicator.setVisible(True)
             self.report_button.setVisible(True)
             self.report_button.set_icon(resources.get_path('report.png'))
@@ -1401,6 +1551,7 @@ class Window(QtWidgets.QWidget):
             self.options.setEnabled(False)
             self.render_button.setEnabled(False)
             self.reset_button.setVisible(True)
+            self.cancel_button.setVisible(False)
             self.status_indicator.setVisible(True)
             self.report_button.setVisible(True)
             self.report_button.set_icon(resources.get_path('error_report.png'))
