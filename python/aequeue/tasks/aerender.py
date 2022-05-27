@@ -2,9 +2,9 @@ import os
 import sys
 
 from .. import const, paths
-from ..render import AERenderProcess
-from ..vendor.Qt import QtCore
-from .core import Task, SyncTask, call_in_main
+from ..render import AERenderProcess, AERenderSubprocess
+from ..vendor.Qt import QtCore, QtWidgets
+from .core import Task, SyncTask, call_in_main, fit
 
 
 class AERenderFailed(Exception):
@@ -49,6 +49,10 @@ class AERenderComp(SyncTask):
         except Exception:
             raise RuntimeError('Failed to create output folder %s' % self.output_folder)
 
+        # Check for cancelled before rendering - once started we can't cancel.
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
         success = app.engine.render_queue_item(rq_item)
         if not success:
             raise AERenderFailed('Failed to render queue item: %s' % self.comp)
@@ -73,7 +77,12 @@ class BackgroundAERenderComp(Task):
         self.set_status(event['status'])
 
     def on_render_progress_changed(self, event):
-        self.set_status(const.Running, event['progress'])
+        self.set_status(const.Running, fit(event['progress'], 0, 100, 20, 100))
+
+    def check_cancel(self):
+        if self.status_request == const.Cancelled:
+            return True
+        return False
 
     def execute(self):
         # Get required context data
@@ -98,9 +107,30 @@ class BackgroundAERenderComp(Task):
         self.render.start()
         self.set_status(const.Running, 20)
 
+        # # AERenderSubprocess - uses subprocess.Popen
+        # status = self.render.wait(check_cancel=self.check_cancel)
+        # if status == const.Success:
+        #     self.set_status(status, 100)
+        # elif status == const.Cancelled:
+        #     return self.accept(const.Cancelled)
+        # else:
+        #     self.set_status(const.Failed)
+        #     output = '\n'.join(self.render_state.get('output', []))
+        #     raise EncodeError('Failed to render comp...\n' + output)
+
+        # AERenderProcess - uses QProcess
+        # Check for cancel request while waiting for render to finish.
+        while not self.render.wait(1000):
+            if self.status_request == const.Cancelled:
+                self.render.kill()
+                return self.accept(const.Cancelled)
+
         # Raise Error if render process failed.
-        state = self.render.wait()
+        state = self.render.finished_state()
         if state['status'] == const.Failed:
             raise RuntimeError(state['message'])
+
+        # Ensure progress reaches 100
+        self.set_status(const.Success, 100)
 
         return self.output_path
