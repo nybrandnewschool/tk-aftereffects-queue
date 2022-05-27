@@ -1,5 +1,18 @@
 ## Unreleased Changes
 
+## 0.5.0
+
+* Add cancel support. Tasks are now interruptable via the cancel button in the UI.
+* Add AEPopupMonitor to close any AE popups that appear while background rendering.
+* Add experimental support for background rendering. (Disabled by default.)
+* Adjust context menus. You can now copy paths prior to rendering.
+* Improve render startup time.
+* Fix issue where SG instance timed out in Publish and Upload tasks.
+
+  * Should implement task retrying to avoid any stupid upload failures to SG.
+
+* Fix issue parsing float frame numbers like 29.97.
+
 ## 0.4.0
 
 * Added *move_to_review_area* option. When enabled this will move encoded media to the
