@@ -21,7 +21,6 @@ class SGPublish(Task):
     step = const.Publishing
 
     def __init__(self, file, sg_ctx, version_task, *args, **kwargs):
-        self.sg = get_shotgun()
         self.file = file
         self.thumbnail_src_file = kwargs.pop("thumbnail_src_file", None)
         self.sg_ctx = sg_ctx
@@ -63,15 +62,26 @@ class SGPublish(Task):
         }
         self.set_status(const.Running, 25)
 
-        publish = self.create_publish(publish_data)
+        # Check for cancelled before publshing.
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
+        # Get an instance of SG for this thread
+        sg = get_shotgun()
+
+        publish = self.create_publish(sg, publish_data)
         self.set_status(const.Running, 50)
 
-        self.upload_thumbnail_and_filmstrip(publish, self.thumbnail_src_file or file)
+        self.upload_thumbnail_and_filmstrip(
+            sg,
+            publish,
+            self.thumbnail_src_file or file,
+        )
         self.set_status(const.Running, 100)
 
         return version
 
-    def create_publish(self, publish_data):
+    def create_publish(self, sg, publish_data):
         '''Get existing version or create a new one.'''
 
         self.log.debug('Checking if Publish already exists...')
@@ -85,7 +95,7 @@ class SGPublish(Task):
             'path',
         ]
         prepublish_data = register_publish(**dict(dry_run=True, **publish_data))
-        publish = self.sg.find_one(
+        publish = sg.find_one(
             'PublishedFile',
             filters=[
                 ['project', 'is', prepublish_data['project']],
@@ -103,7 +113,7 @@ class SGPublish(Task):
             publish = register_publish(**publish_data)
         else:
             self.log.debug('Updated existing Publish in ShotGrid...')
-            self.sg.update(
+            sg.update(
                 'PublishedFile',
                 publish['id'],
                 {"version": publish_data["version_entity"]},
@@ -111,7 +121,7 @@ class SGPublish(Task):
 
         return publish
 
-    def upload_thumbnail_and_filmstrip(self, publish, in_file):
+    def upload_thumbnail_and_filmstrip(self, sg, publish, in_file):
 
         name = os.path.splitext(os.path.basename(in_file))[0]
 
@@ -120,7 +130,7 @@ class SGPublish(Task):
             self.log.debug('Creating and uploading thumbnail...')
             thumbnail = os.path.join(tempdir, name + '.jpeg')
             ffmpeg_lib.create_thumbnail(in_file, thumbnail, frame="middle")
-            self.sg.upload_thumbnail(
+            sg.upload_thumbnail(
                 'PublishedFile',
                 publish['id'],
                 thumbnail,
@@ -130,7 +140,7 @@ class SGPublish(Task):
             self.log.debug('Creating and uploading filmstrip...')
             filmstrip = os.path.join(tempdir, name + '_filmstrip.jpeg')
             ffmpeg_lib.create_filmstrip(in_file, filmstrip)
-            self.sg.upload_filmstrip_thumbnail(
+            sg.upload_filmstrip_thumbnail(
                 'PublishedFile',
                 publish['id'],
                 filmstrip,

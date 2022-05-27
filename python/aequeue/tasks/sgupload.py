@@ -16,7 +16,6 @@ class SGUploadVersion(Task):
     step = const.Uploading
 
     def __init__(self, src_file, sg_ctx, comment, *args, **kwargs):
-        self.sg = get_shotgun()
         self.sg_ctx = sg_ctx
         self.comment = comment
         self.src_file = src_file
@@ -50,6 +49,10 @@ class SGUploadVersion(Task):
         }
         self.set_status(const.Running, 25)
 
+        # Check for cancelled before encoding.
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
         upload_file = src_file
         if src_file_info['is_sequence']:
             if options.mp4:
@@ -62,16 +65,23 @@ class SGUploadVersion(Task):
                 )
         self.set_status(const.Running, 50)
 
+        # Check for cancelled before uploading.
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
+        # Get an instance of sg for this thread
+        sg = get_shotgun()
+
         self.log.debug('Creating or updating Version in ShotGrid...')
-        version = self.create_version(version_data)
+        version = self.create_version(sg, version_data)
         self.set_status(const.Running, 75)
 
         self.log.debug('Uploading media to ShotGrid...')
-        self.upload_media(version, upload_file)
+        self.upload_media(sg, version, upload_file)
         self.set_status(const.Running, 100)
         return version
 
-    def create_version(self, version_data):
+    def create_version(self, sg, version_data):
         '''Get existing version or create a new one.'''
 
         return_fields = [
@@ -86,7 +96,7 @@ class SGUploadVersion(Task):
             'user',
         ]
 
-        version = self.sg.find_one(
+        version = sg.find_one(
             'Version',
             filters=[
                 ['project', 'is', version_data['project']],
@@ -98,20 +108,20 @@ class SGUploadVersion(Task):
         )
 
         if not version:
-            version = self.sg.create(
+            version = sg.create(
                 'Version',
                 version_data,
                 return_fields=return_fields,
             )
         else:
-            self.sg.update('Version', version['id'], version_data)
+            sg.update('Version', version['id'], version_data)
 
         return version
 
-    def upload_media(self, version, file):
+    def upload_media(self, sg, version, file):
         '''Upload file to sg_uploaded_media field of a Version entity.'''
 
-        media = self.sg.upload(
+        media = sg.upload(
             'Version',
             version['id'],
             path=file,
