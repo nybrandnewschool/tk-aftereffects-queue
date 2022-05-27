@@ -22,6 +22,10 @@ class Copy(Task):
             os.makedirs(dst_dir)
         self.set_status(const.Running, 50)
 
+        # Check for cancelled before performing copy.
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
         self.log.debug('Copying "%s" to "%s"...', self.src_file, self.dst_file)
         shutil.copy2(self.src_file, self.dst_file)
         self.set_status(const.Running, 100)
