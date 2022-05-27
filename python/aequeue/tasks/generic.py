@@ -1,7 +1,5 @@
-import time
-
 from .. import const
-from .core import Task
+from .core import Task, sleep
 
 
 class LongRunningTask(Task):
@@ -18,7 +16,7 @@ class LongRunningTask(Task):
 
             self.set_status(const.Running, (i / (self.steps - 1)) * 100)
             self.log.debug('Step %d of %d' % (i + 1, self.steps))
-            time.sleep(self.step_interval)
+            sleep(self.step_interval)
 
 
 class FunctionTask(Task):
@@ -40,5 +38,5 @@ class ErrorTask(Task):
 
     def execute(self):
         for i in range(5):
-            time.sleep(0.1)
+            sleep(0.1)
         raise RuntimeError('TASK RAISED AN ERROR!!!')
