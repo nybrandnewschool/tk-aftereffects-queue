@@ -8,6 +8,7 @@ from queue import Queue
 # Local imports
 from . import const, resources, ae, paths
 from .options import RenderOptions
+from .render import AERenderPopupMonitor
 from .widgets import Window, Menu
 from .tasks.core import LogFormatter, Runner, Flow, generate_html_report, generate_report
 from .tasks.aerender import AERenderComp, BackgroundAERenderComp
@@ -27,6 +28,7 @@ class Application(QtCore.QObject):
 
         self.items = []
         self.runner = None
+        self._aerender_popup_monitor = None
 
         # Create UI
         self.ui = Window(parent)
@@ -177,6 +179,11 @@ class Application(QtCore.QObject):
         if status in const.DoneList:
             self.ui.report.setText(generate_html_report(self.runner))
 
+            # Stop the AERenderPopupMonitor
+            if self._aerender_popup_monitor:
+                self.log.debug('Stopping AERenderPopupMonitor...')
+                self._aerender_popup_monitor.stop()
+
         self.ui.set_status(status)
 
         # Update Send button state and send report if needed.
@@ -221,7 +228,15 @@ class Application(QtCore.QObject):
 
         self.log.debug('Constructing Render Flows...')
         with Runner('Render and Review', parent=self) as runner:
+
+            # Get the user options
             options = RenderOptions(**self.ui.options.get())
+
+            # Setup bg pool
+            render_pool = None
+            if options.bg:
+                render_pool = QtCore.QThreadPool()
+                render_pool.setMaxThreadCount(options.bg_threads)
             prev_flow = None
             for item in self.items:
                 flow = self.new_render_flow(item['name'], options)
@@ -237,6 +252,10 @@ class Application(QtCore.QObject):
         self.runner.start()
 
     def new_render_flow(self, item, options):
+        if options.bg:
+            self.log.debug('Starting AERenderPopupMonitor...')
+            self._aerender_popup_monitor = AERenderPopupMonitor()
+            self._aerender_popup_monitor.start()
         # Get required flow data...
         sg_ctx = self.engine.context
 
