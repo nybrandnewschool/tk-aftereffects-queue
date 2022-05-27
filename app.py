@@ -79,7 +79,7 @@ class AEQueueApplication(sgtk.platform.Application):
         if self.aequeue_module is None:
             self.aequeue_module = self.import_module('aequeue')
             self.aequeue = self.aequeue_module.Application(
-                self,
+                tk_app=self,
                 parent=self.engine._get_dialog_parent()
             )
         self.aequeue.show()
@@ -88,8 +88,12 @@ class AEQueueApplication(sgtk.platform.Application):
         self.aequeue.hide()
 
     def destroy_app(self):
-        self.aequeue.hide()
+        # Hide and mark ui for deletion.
+        self.aequeue.ui.hide()
+        self.aequeue.ui.setParent(None)
         self.aequeue.ui.deleteLater()
+
+        # Delete the application.
         del self.aequeue
         self.aequeue = None
 
