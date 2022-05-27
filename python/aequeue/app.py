@@ -489,9 +489,23 @@ class Application(QtCore.QObject):
                     )
             if flow.status in [const.Running, const.Queued]:
                 menu.addAction(
-                    QtGui.QIcon(resources.get_path('cancel.png')),
-                    'Cancel',
-                    lambda: flow.request(const.Cancelled),
+                    QtGui.QIcon(resources.get_path('clipboard.png')),
+                    'Copy File Path',
+                    lambda: self.copy_text_to_clipboard(os.path.abspath(file_path)),
+                )
+                browser = {
+                    'win32': 'Explorer',
+                    'darwin': 'Finder',
+                }.get(sys.platform, 'File Manager')
+                menu.addAction(
+                    QtGui.QIcon(resources.get_path('folder.png')),
+                    'Show Renders in ' + browser,
+                    lambda: self.open_folder_in_browser(render_folder),
+                )
+                menu.addAction(
+                    QtGui.QIcon(resources.get_path('folder.png')),
+                    'Show Review in ' + browser,
+                    lambda: self.open_folder_in_browser(review_folder),
                 )
 
         self.log.debug('Showing Context Menu at %s for %s' % (point, item))
