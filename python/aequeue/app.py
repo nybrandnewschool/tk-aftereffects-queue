@@ -10,7 +10,7 @@ from . import const, resources, ae, paths
 from .options import RenderOptions
 from .render import AERenderPopupMonitor
 from .widgets import Window, Menu
-from .tasks.core import LogFormatter, Runner, Flow, generate_html_report, generate_report
+from .tasks.core import LogFormatter, Runner, Flow, generate_html_report, generate_report, call_in_main
 from .tasks.aerender import AERenderComp, BackgroundAERenderComp
 from .tasks.encode import EncodeMP4, EncodeGIF
 from .tasks.copy import Copy
@@ -237,12 +237,24 @@ class Application(QtCore.QObject):
             if options.bg:
                 render_pool = QtCore.QThreadPool()
                 render_pool.setMaxThreadCount(options.bg_threads)
+
+            # Generate a path template by creating a temporary render queue item
+            # with the output module specified in options.
+            path_template = self.generate_path_template(options.module)
+
+            # Create flow for each item
             prev_flow = None
             for item in self.items:
-                flow = self.new_render_flow(item['name'], options)
-                if prev_flow:
+                flow = self.new_render_flow(
+                    item['name'],
+                    options,
+                    path_template,
+                    render_pool,
+                )
+                if prev_flow and not options.bg:
                     flow.depends_on(prev_flow.tasks[0])
                 prev_flow = flow
+
 
         self.log.debug('Starting Render Flows...')
         self.runner = runner
@@ -251,13 +263,15 @@ class Application(QtCore.QObject):
         self.runner.log.emit_record.connect(self.on_runner_emit_record)
         self.runner.start()
 
-    def new_render_flow(self, item, options):
         if options.bg:
             self.log.debug('Starting AERenderPopupMonitor...')
             self._aerender_popup_monitor = AERenderPopupMonitor()
             self._aerender_popup_monitor.start()
+
+    def new_render_flow(self, item, options, path_template, render_pool):
         # Get required flow data...
         sg_ctx = self.engine.context
+        comp_item = self.engine.get_comp(item)
 
         # Extract template fields from work file template...
         work_template = self.tk_app.get_work_template()
@@ -269,9 +283,9 @@ class Application(QtCore.QObject):
         move_to_review = self.tk_app.get_move_to_review()
         render_folder = self.tk_app.get_render_template().apply_fields(sg_fields)
         review_folder = self.tk_app.get_review_template().apply_fields(sg_fields)
-        output_data = self.generate_output_data(item, options.module, render_folder)
-        output_path, output_resolution = output_data
-        framerate = 1.0 / self.engine.get_comp(item).frameDuration
+        output_path = path_template.format(folder=render_folder, name=item)
+        output_resolution = comp_item.width, comp_item.height
+        framerate = 1.0 / comp_item.frameDuration
         project = self.engine.project_path
 
         # Build the flow context...
@@ -291,16 +305,22 @@ class Application(QtCore.QObject):
             'host_version': self.host_version,
         }
 
+        # Use a separate threadpool for AERender processes. When background rendering
+        # the aerender process is the least reliable.
+        # aerender_pool = QtCore.QThreadPool()
+        # aerender_pool.setMaxThreadCount(options.bg_threads)
+
         with Flow(item) as flow:
 
-
             # Add main render task
-            AERenderComp(
+            RenderComp = (AERenderComp, BackgroundAERenderComp)[options.bg]
+            render_comp = RenderComp(
                 project=project,
                 comp=item,
                 output_module=options.module,
                 output_path=output_path,
             )
+            render_comp.pool = render_pool
 
             # Poison pill for debugging and testing purposes
             # ErrorTask(step=const.Rendering)
@@ -381,36 +401,37 @@ class Application(QtCore.QObject):
 
         return flow
 
-    def generate_output_data(self, comp, output_module, render_folder):
-        comp_item = self.engine.get_comp(comp)
-        with self.engine.TempEnqueue(comp_item) as rq_item:
-            # Create output module for comp
-            om = rq_item.outputModule(1)
+    def generate_path_template(self, output_module):
+        token = "__NAME__"
+        with self.engine.TempComp(token) as comp:
+            with self.engine.TempEnqueue(comp) as rq_item:
+                # Create output module for comp
+                om = rq_item.outputModule(1)
 
-            # Apply output module template
-            om.applyTemplate(output_module)
-            om.setSettings({'File Name Template': '[compName]'})
+                # Apply output module template
+                om.applyTemplate(output_module)
+                om.setSettings({'File Name Template': '[compName]'})
 
-            file_info = self.engine.get_file_info(om)
-            path_info = self.engine.get_ae_path_info(file_info['Full Flat Path'])
-            self.log.debug('FILE INFO: %s' % file_info)
-            self.log.debug('PATH INFO: %s' % path_info)
+                file_info = self.engine.get_file_info(om)
+                path_info = self.engine.get_ae_path_info(file_info['Full Flat Path'])
+                self.log.debug('FILE INFO: %s' % file_info)
+                self.log.debug('PATH INFO: %s' % path_info)
 
-            # Generate new file info
-            padding = '#' * path_info['padding']
-            extension = path_info['extension']
-            if path_info['is_sequence']:
-                output_path = paths.normalize(
-                    render_folder,
-                    comp,
-                    f'{comp}.[{padding}].{extension}',
-                )
-            else:
-                output_path = paths.normalize(
-                    render_folder,
-                    f'{comp}.{extension}'
-                )
-        return output_path, (comp_item.width, comp_item.height)
+                # Generate new file info
+                padding = '#' * path_info['padding']
+                extension = path_info['extension']
+                if path_info['is_sequence']:
+                    output_path = paths.normalize(
+                        '{folder}',
+                        token,
+                        f'{token}.[{padding}].{extension}',
+                    )
+                else:
+                    output_path = paths.normalize(
+                        '{folder}',
+                        f'{token}.{extension}'
+                    )
+        return output_path.replace(token, '{name}')
 
     def show_context_menu(self, point):
         # Get selected item
@@ -426,10 +447,10 @@ class Application(QtCore.QObject):
             )
         else:
             flow = self.runner.get_flow(item)
+            file_path = flow.context['output_path']
+            render_folder = flow.context['render_folder']
+            review_folder = flow.context['review_folder']
             if flow.status in [const.Done, const.Success]:
-                file_path = flow.get_result(const.Rendering)
-                render_folder = flow.context['render_folder']
-                review_folder = flow.context['review_folder']
                 sg_version = flow.get_result(const.Uploading)
                 menu.addAction(
                     QtGui.QIcon(resources.get_path('play_filled.png')),
