@@ -22,6 +22,10 @@ class Move(Task):
             os.makedirs(dst_dir)
         self.set_status(const.Running, 50)
 
+        # Check for cancelled before performing move.
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
         self.log.debug('Moving "%s" to "%s"...', self.src_file, self.dst_file)
         shutil.move(self.src_file, self.dst_file)
         self.set_status(const.Running, 100)
