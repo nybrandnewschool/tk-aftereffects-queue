@@ -319,3 +319,15 @@ class AfterEffectsEngineWrapper(object):
             info['published_file_type'] = 'Rendered Image'
 
         return info
+
+    @contextmanager
+    def suppress_dialogs(self):
+        try:
+            self.adobe.app.beginSuppressDialogs()
+            yield
+        finally:
+            self.adobe.app.endSuppressDialogs(False)
+
+    def render_queue_item(self, rq_item):
+        with self.suppress_dialogs():
+            return self._engine.render_queue_item(rq_item)
