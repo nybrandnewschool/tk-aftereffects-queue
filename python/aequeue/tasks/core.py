@@ -226,12 +226,12 @@ class Task(QtCore.QRunnable):
     def run(self):
         self.set_status(const.Running)
         try:
+            if self.status_request == const.Cancelled:
+                return self.accept(const.Cancelled)
             if self.execute_in_main:
                 self.result = call_in_main(self.execute)
             else:
                 self.result = self.execute()
-            if self.status_request == const.Cancelled:
-                return self.accept(const.Cancelled)
             self.set_status(const.Success)
         except Exception:
             self.error = sys.exc_info()
@@ -395,10 +395,13 @@ class Flow(QtCore.QThread):
                 status = dep.status
                 done.append(dep.status in const.DoneList)
                 if status == const.Failed:
-                    self.log.debug('Upstream dependency has Failed: %s', dep)
+                    self.log.debug('Upstream dependency Failed: %s', dep)
                     return False
                 if status == const.Cancelled:
-                    self.log.debug('Upstream dependency has been Cancelled: %s', dep)
+                    self.log.debug('Upstream dependency Cancelled: %s', dep)
+                    return False
+                if status == const.Revoked:
+                    self.log.debug('Upstream dependency Revoked: %s', dep)
                     return False
 
             if all(done):
@@ -411,7 +414,7 @@ class Flow(QtCore.QThread):
         # Wait for all dependencies to finish
         dependencies_satisfied = self.await_dependencies()
         if not dependencies_satisfied:
-            # When an upstream dependency has Failed or been Cancelled
+            # When an upstream dependency has Failed, Cancelled, or Revoked
             # this flow should be revoked.
             self.set_status(const.Revoked)
             self.set_step(const.Revoked)
