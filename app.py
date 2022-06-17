@@ -75,28 +75,6 @@ class AEQueueApplication(sgtk.platform.Application):
             self.log_error(msg)
             raise RuntimeError(msg)
 
-    def show_app(self):
-        if self.aequeue_module is None:
-            self.aequeue_module = self.import_module('aequeue')
-            self.aequeue = self.aequeue_module.Application(
-                tk_app=self,
-                parent=self.engine._get_dialog_parent()
-            )
-        self.aequeue.show()
-
-    def hide_app(self):
-        self.aequeue.hide()
-
-    def destroy_app(self):
-        # Hide and mark ui for deletion.
-        self.aequeue.ui.hide()
-        self.aequeue.ui.setParent(None)
-        self.aequeue.ui.deleteLater()
-
-        # Delete the application.
-        del self.aequeue
-        self.aequeue = None
-
     def get_command_name(self):
         return self.get_setting('command_name')
 
@@ -252,3 +230,31 @@ class AEQueueApplication(sgtk.platform.Application):
                 self.aequeue.reset_queue()
 
         self._reset_on_context_change = True
+
+    def show_app(self):
+        if not self.aequeue:
+            self.aequeue_module = self.import_module('aequeue')
+            self.aequeue = self.aequeue_module.Application(
+                tk_app=self,
+                parent=self.engine._get_dialog_parent()
+            )
+        self.aequeue.show()
+
+    def hide_app(self):
+        if not self.aequeue:
+            return
+
+        self.aequeue.hide()
+
+    def destroy_app(self):
+        if not self.aequeue:
+            return
+
+        # Hide and mark ui for deletion.
+        self.aequeue.ui.hide()
+        self.aequeue.ui.setParent(None)
+        self.aequeue.ui.deleteLater()
+
+        # Delete the application.
+        del self.aequeue
+        self.aequeue = None
