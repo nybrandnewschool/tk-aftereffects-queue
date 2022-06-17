@@ -1098,7 +1098,7 @@ class Options(QtWidgets.QWidget):
         self.bg.stateChanged.connect(self.bg_threads.setEnabled)
         self.bg_threads.setMinimum(1)
         self.bg_threads.setMaximum(cpu_count())
-        self.bg_threads.setValue(int(cpu_count() * 0.5))
+        self.bg_threads.setValue(4)
         self.bg_threads.setSuffix(' Threads')
         self.bg_layout = QtWidgets.QHBoxLayout()
         self.bg_layout.setSpacing(12)
@@ -1452,7 +1452,7 @@ class Window(QtWidgets.QDialog):
             gif=True,
             sg=True,
             bg=False,
-            bg_threads=int(cpu_count() * 0.5),
+            bg_threads=4,
         )
         self.options_header = SectionHeader('OPTIONS')
         self.options_header.right.addWidget(self.status_indicator)
