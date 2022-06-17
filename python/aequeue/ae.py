@@ -242,17 +242,18 @@ class AfterEffectsEngineWrapper(object):
         self._validate_file_info(data)
         obj = self._to_output_module(obj)
 
-        if sys.platform == 'darwin':
-            full_path = data.get('Full Flat Path')
-            if not full_path:
-                base_path = data.get('Base Path', '')
-                sub_path = data.get('Subfolder Path', '')
-                file_name = data.get('File Name', '')
-                file_template = data.get('File Template', '')
-                full_path = '/'.join([base_path, sub_path, file_name or file_template])
-            self.set_file(obj, full_path)
-        else:
-            obj.setSettings({'Output File Info': data})
+        # Generate full path from provided data.
+        full_path = data.get('Full Flat Path')
+        if not full_path:
+            parts = [
+                data.get('Base Path', ''),
+                data.get('Subfolder Path', ''),
+                data.get('File Name', data.get('File Template', '')),
+            ]
+            full_path = '/'.join([part for part in parts if part])
+
+        # Set output module's file object.
+        self.set_file(obj, full_path.replace('\\', '/'))
 
     def set_file(self, obj, path):
         '''Set the File object for the given RenderQueueItem or OutputModule.
@@ -263,6 +264,11 @@ class AfterEffectsEngineWrapper(object):
         '''
 
         obj = self._to_output_module(obj)
+        # Clear existing file info ensuring we have no conflicting data.
+        obj.setSettings(
+            {'Output File Info': {key: '' for key in self.file_info_properties}}
+        )
+        # Set output module's file object.
         obj.file = self.adobe.File(path)
 
     def get_file_info(self, obj):
@@ -278,8 +284,8 @@ class AfterEffectsEngineWrapper(object):
                 'Subfolder Path': str,  # Subfolder within "Base Path"
                 'File Name': str,  # Name of file
                 'File Template': str,  # Name template like...
-                                       # [compName]/[compName].[fileextension]
-                                       # [compName]/[compName].[#####].[fileextension]
+                                       # [compName]/[compName].[fileExtension]
+                                       # [compName]/[compName].[#####].[fileExtension]
             }
         '''
 
@@ -319,3 +325,15 @@ class AfterEffectsEngineWrapper(object):
             info['published_file_type'] = 'Rendered Image'
 
         return info
+
+    @contextmanager
+    def suppress_dialogs(self):
+        try:
+            self.adobe.app.beginSuppressDialogs()
+            yield
+        finally:
+            self.adobe.app.endSuppressDialogs(False)
+
+    def render_queue_item(self, rq_item):
+        with self.suppress_dialogs():
+            return self._engine.render_queue_item(rq_item)

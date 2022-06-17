@@ -1,5 +1,20 @@
 ## Unreleased Changes
 
+## 0.6.0
+
+* Suppress dialogs while rendering directly in AE. Users should no longer need to accept
+  dialogs for overwriting renders or warnings about color bit depth.
+* Fix issue where a Failed task was not propagated to all depedent jobs, causing the
+  dialog to get stuck running, when it should Fail.
+* Fix failure caused by rendering to Google Drive on some fresh installs of ShotGrid.
+  Solved by fixing the following two related issues.
+
+  * Fix path generation ensuring that paths point to the correct output folders.
+  * Fix BNS output module templates. Please remove the existing templates
+
+* Improved reliability of background rendering.
+* Set default background rendering threads to 4.
+
 ## 0.5.0
 
 * Add cancel support. Tasks are now interruptable via the cancel button in the UI.

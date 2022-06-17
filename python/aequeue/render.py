@@ -15,7 +15,8 @@ AERENDER_PATTERNS = {
     'duration': re.compile(r'PROGRESS:  Duration: (\d[:;]\d\d[:;]\d\d[:;]\d\d)'),
     'framerate': re.compile(r'PROGRESS:  Frame Rate: (\d+.\d+)'),
     'progress': re.compile(r'PROGRESS:  (\d[:;]\d\d[:;]\d\d[:;]\d\d) \((\d+)\): \d+ Seconds'),
-    'error': re.compile(r'aerender Error:\s*(.*)$'),
+    'error': re.compile(r'aerender ERROR:\s*(.*)$', re.IGNORECASE),
+    'finished': re.compile(r'PROGRESS:  Total Time Elapsed'),
 }
 
 
@@ -37,8 +38,12 @@ class AERenderProcess(QtCore.QProcess):
         self.arguments = get_arguments(project, comp, omtemplate, output)
 
         # Process handlers
+        self.status_request = None
         self._finished = False
-        self._finished_state = {}
+        self._finished_state = {
+            'status': None,
+            'message': None,
+        }
         self.readyReadStandardOutput.connect(self.handle_stdout)
         self.readyReadStandardError.connect(self.handle_stderr)
         self.stateChanged.connect(self.handle_state)
@@ -71,11 +76,15 @@ class AERenderProcess(QtCore.QProcess):
                 continue
             if name == 'error':
                 self.render_state['status'] = const.Failed
-                self.status_changed.emit({
+                self._finished_state = {
                     'status': const.Failed,
                     'message': match.group(1),
-                })
-                raise RuntimeError('Failed to render: %s' % match.group(1))
+                }
+                self.status_changed.emit(self._finished_state)
+                self.kill()
+                return 'error'
+            elif name == 'finished':
+                return 'finished'
             elif name in ['start', 'end', 'duration', 'framerate']:
                 self.render_state[name] = match.group(1)
                 if name == 'framerate':
@@ -85,6 +94,7 @@ class AERenderProcess(QtCore.QProcess):
                     seconds = int(seconds) + int(hours) * 3600 + int(minutes) * 60
                     frame_duration = int(frames) + int(framerate * seconds) - 1
                     self.render_state['frame_duration'] = frame_duration
+                return 'framerate'
             else:
                 frame_duration = self.render_state['frame_duration']
                 frame_number = int(match.group(2))
@@ -94,6 +104,7 @@ class AERenderProcess(QtCore.QProcess):
                     'message': f'Frame {frame_number} of {frame_duration}.',
                 })
                 self.render_state['progress'] = progress
+                return 'progress'
 
     def handle_state(self, state):
         status = {
@@ -109,13 +120,24 @@ class AERenderProcess(QtCore.QProcess):
 
     def handle_finish(self, exit_code, exit_status):
         self._finished = True
-        if exit_code < 0 or exit_status == self.CrashExit:
+
+        # If the _finished_state is set and status in Failed
+        # an error was logged in stdout that we captured in handle_stdout -> parse_line
+        # In this case we should maintain the _finished_state regardless of exit_code.
+        if self._finished_state['status'] == const.Failed:
+            self.render_state['status'] = const.Failed
+            self.status_changed.emit(self._finished_state)
+
+        # Set the error message based on the QProcess documentation.
+        elif exit_code < 0 or exit_status == self.CrashExit:
             self._finished_state = {
                 'status': const.Failed,
                 'message': self.error_message(self.error()),
             }
             self.render_state['status'] = const.Failed
             self.status_changed.emit(self._finished_state)
+
+        # Otherwise the process finished successfully!
         else:
             self._finished_state = {
                 'status': const.Success,
@@ -178,8 +200,12 @@ class AERenderSubprocess:
         self.finished = self.signals.finished
 
         self.proc = None
+        self.status_request = None
         self._finished = False
-        self._finished_state = {}
+        self._finished_state = {
+            'status': None,
+            'message': None,
+        }
         self.render_state = {
             'progress': 0,
             'start': '',
@@ -197,11 +223,14 @@ class AERenderSubprocess:
                 continue
             if name == 'error':
                 self.render_state['status'] = const.Failed
-                self.status_changed.emit({
+                self._finished_state = {
                     'status': const.Failed,
                     'message': match.group(1),
-                })
-                raise RuntimeError('Failed to render: %s' % match.group(1))
+                }
+                self.status_changed.emit(self._finished_state)
+                return 'error'
+            elif name == 'finished':
+                return 'finished'
             elif name in ['start', 'end', 'duration', 'framerate']:
                 self.render_state[name] = match.group(1)
                 if name == 'framerate':
@@ -211,6 +240,7 @@ class AERenderSubprocess:
                     seconds = int(seconds) + int(hours) * 3600 + int(minutes) * 60
                     frame_duration = int(frames) + int(framerate * seconds) - 1
                     self.render_state['frame_duration'] = frame_duration
+                return 'framerate'
             else:
                 frame_duration = self.render_state['frame_duration']
                 frame_number = int(match.group(2))
@@ -220,6 +250,7 @@ class AERenderSubprocess:
                     'message': f'Frame {frame_number} of {frame_duration}.',
                 })
                 self.render_state['progress'] = progress
+                return 'progress'
 
     def is_finished(self):
         return self._finished
@@ -248,25 +279,47 @@ class AERenderSubprocess:
             **platform_kwargs
         )
 
-    def wait(self, check_cancel=None):
+    def wait(self):
         capture = []
         self.render_state['output'] = capture
         cancelled = False
+        errored = False
+        finished = False
         for line in io.TextIOWrapper(self.proc.stdout, encoding='utf-8'):
             capture.append(line)
-            self.parse_line(line)
-            if check_cancel and check_cancel():
+            result = self.parse_line(line)
+            if result == 'error':
+                errored = True
+                break
+            if result == 'finished':
+                break
+            if self.status_request == const.Cancelled:
                 cancelled = True
                 break
             time.sleep(0.01)
 
         if cancelled:
             self.proc.terminate()
-            self.proc.wait()
+            self._finished = True
             self.finished.emit()
             return const.Cancelled
-
-        if self.proc.wait() != 0:
+        elif errored:
+            self.proc.terminate()
+            self._finished = True
+            self.finished.emit()
+            return const.Failed
+        elif finished:
+            self.proc.terminate()
+            self.render_state['status'] = const.Success
+            self._finished_state = {
+                'status': const.Success,
+                'message': 'Render completed successfully.',
+            }
+            self.status_changed.emit(self._finished_state)
+            self._finished = True
+            self.finished.emit()
+            return const.Success
+        elif self.proc.wait() != 0:
             self.render_state['status'] = const.Failed
             self._finished_state = {
                 'status': const.Failed,
@@ -315,7 +368,7 @@ def get_executable(version=None):
 
 def get_arguments(project, comp, omtemplate, output):
     return [
-        '-mem_usage', '50', '50',
+        # '-mem_usage', '50', '50',
         '-continueOnMissingFootage',
         '-project', project,
         '-comp', comp,

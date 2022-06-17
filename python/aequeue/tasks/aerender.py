@@ -34,20 +34,23 @@ class AERenderComp(SyncTask):
         om = rq_item.outputModule(1)
         self.set_status(const.Running, 20)
 
-        # Apply output module template
-        om.applyTemplate(self.output_module)
-        self.set_status(const.Running, 40)
-
-        # Apply file info
-        self.log.debug('Setting Full Flat Path: %s' % self.output_path)
-        app.engine.set_file_info(om, {'Full Flat Path': self.output_path})
-
-        self.log.debug('Rendering [%s]', self.output_module)
-        self.set_status(const.Running, 60)
+        # Ensure output folder exists
         try:
             os.makedirs(self.output_folder, exist_ok=True)
         except Exception:
             raise RuntimeError('Failed to create output folder %s' % self.output_folder)
+
+        # Apply file info
+        self.log.debug('Setting Full Flat Path: %s' % self.output_path)
+        app.engine.set_file_info(om, {'Full Flat Path': self.output_path})
+        self.log.debug('Output File Info: %s', om.getSetting('Output File Info'))
+
+        self.log.debug('Rendering [%s]', self.output_module)
+        self.set_status(const.Running, 40)
+
+        # Apply output module template
+        om.applyTemplate(self.output_module)
+        self.set_status(const.Running, 60)
 
         # Check for cancelled before rendering - once started we can't cancel.
         if self.status_request == const.Cancelled:
@@ -79,51 +82,55 @@ class BackgroundAERenderComp(Task):
     def on_render_progress_changed(self, event):
         self.set_status(const.Running, fit(event['progress'], 0, 100, 20, 100))
 
-    def check_cancel(self):
-        if self.status_request == const.Cancelled:
-            return True
-        return False
+    def request(self, status):
+        self.log.debug('%s requested...' % status.upper())
+        self.status_request = status
+        if self.render:
+            self.render.status_request = status
 
     def execute(self):
         # Get required context data
         app = self.context['app']
 
         self.log.debug('Rendering AEComp...')
+
+        # Ensure output folder exists
         try:
             os.makedirs(self.output_folder, exist_ok=True)
         except Exception:
             raise RuntimeError('Failed to create output folder %s' % self.output_folder)
         self.set_status(const.Running, 10)
 
-        self.render = AERenderProcess(
+        # Cancel check
+        if self.status_request == const.Cancelled:
+            return self.accept(const.Cancelled)
+
+        self.render = AERenderSubprocess(
             project=self.project,
             comp=self.comp,
             omtemplate=self.output_module,
-            output=self.output_path,
+            output=os.path.normpath(self.output_path),
             version=self.context['host_version'],
+        )
+        self.log.debug(
+            "Render Arguments: %s" % ([self.render.executable] + self.render.arguments)
         )
         self.render.status_changed.connect(self.on_render_status_changed)
         self.render.progress_changed.connect(self.on_render_progress_changed)
         self.render.start()
         self.set_status(const.Running, 20)
 
-        # # AERenderSubprocess - uses subprocess.Popen
-        # status = self.render.wait(check_cancel=self.check_cancel)
-        # if status == const.Success:
-        #     self.set_status(status, 100)
-        # elif status == const.Cancelled:
-        #     return self.accept(const.Cancelled)
-        # else:
-        #     self.set_status(const.Failed)
-        #     output = '\n'.join(self.render_state.get('output', []))
-        #     raise EncodeError('Failed to render comp...\n' + output)
+        # AERenderSubprocess - uses subprocess.Popen
+        status = self.render.wait()
+        if status == const.Cancelled:
+            return self.accept(const.Cancelled)
 
-        # AERenderProcess - uses QProcess
-        # Check for cancel request while waiting for render to finish.
-        while not self.render.wait(1000):
-            if self.status_request == const.Cancelled:
-                self.render.kill()
-                return self.accept(const.Cancelled)
+        # # AERenderProcess - uses QProcess
+        # # Check for cancel request while waiting for render to finish.
+        # while not self.render.wait(1000):
+        #     if self.status_request == const.Cancelled:
+        #         self.render.kill()
+        #         return self.accept(const.Cancelled)
 
         # Raise Error if render process failed.
         state = self.render.finished_state()
@@ -134,3 +141,8 @@ class BackgroundAERenderComp(Task):
         self.set_status(const.Success, 100)
 
         return self.output_path
+
+
+def backup(file, is_sequence=False):
+    backup = file + '.tmp'
+    shutil.move(file, file + '.bak')
