@@ -450,6 +450,11 @@ class Flow(QtCore.QThread):
             self.context['results_by_step'][task.step] = task.result
 
         self.context['task'] = None
+
+        # Ensure progress reaches 100% for Done flows.
+        # Occasionally this may not happen if the UI becomes blocked by AE and
+        # some task status_changed signals are missed.
+        self.progress = 100
         self.set_status(const.Success)
         self.set_step(const.Done)
 

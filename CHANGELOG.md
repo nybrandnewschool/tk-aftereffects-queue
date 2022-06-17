@@ -1,5 +1,11 @@
 ## Unreleased Changes
 
+## 0.6.1
+
+* Fix AttributeError when tearing down application.
+* Always set progress to 100% when a Flow is finished. Ensures progress reaches 100%
+  even when signals are dropped due to AE blocking the UI process.
+
 ## 0.6.0
 
 * Suppress dialogs while rendering directly in AE. Users should no longer need to accept
