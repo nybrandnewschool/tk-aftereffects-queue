@@ -413,8 +413,8 @@ class Application(QtCore.QObject):
                 om = rq_item.outputModule(1)
 
                 # Apply output module template
+                om.setSettings({"Output File Info": {"Full Flat Path": "~/[compName]"}})
                 om.applyTemplate(output_module)
-                om.setSettings({'File Name Template': '[compName]'})
 
                 file_info = self.engine.get_file_info(om)
                 path_info = self.engine.get_ae_path_info(file_info['Full Flat Path'])
