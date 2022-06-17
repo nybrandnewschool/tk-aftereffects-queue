@@ -34,6 +34,28 @@ class AfterEffectsEngineWrapper(object):
     def adobe(self):
         return self._engine.adobe
 
+    def save(self, file=None):
+        if file:
+            return self.adobe.app.project.save(self.adobe.File(file))
+
+        if self.adobe.app.project.dirty:
+            return self.adobe.app.project.save()
+
+    def open(self, file):
+        return self.adobe.app.open(self.adobe.File(file))
+
+    def save_copy(self, copy_path):
+        # Save original project
+        original_path = self.engine.project_path
+        self.save()
+
+        # Save copy
+        os.makedirs(os.path.dirname(copy_path), exist_ok=True)
+        self.save(copy_path)
+
+        # Restore original project
+        self.open(original_path)
+
     def has_dynamic_links(self, mimeData):
         return mimeData.hasFormat(self.ae_mime_format)
 

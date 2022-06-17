@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import webbrowser
+from datetime import datetime
 from queue import Queue
 
 # Local imports
@@ -233,14 +234,24 @@ class Application(QtCore.QObject):
         self.log.debug('Constructing Render Flows...')
         with Runner('Render and Review', parent=self) as runner:
 
-            # Get the user options
+            # Get the user options and project path
             options = RenderOptions(**self.ui.options.get())
+            project = self.engine.project_path
 
-            # Setup bg pool
+            # Setup bg rendering
             render_pool = None
             if options.bg:
+                # Create a pool just for background render tasks.
                 render_pool = QtCore.QThreadPool()
                 render_pool.setMaxThreadCount(options.bg_threads)
+
+                # Save a copy of the project to render in background.
+                # Prevents modifications from affecting background renders.
+                project = self.generate_bg_project_path(
+                    render_id=runner.id[:8],
+                    project_path=project,
+                )
+                self.engine.save_copy(project)
 
             # Generate a path template by creating a temporary render queue item
             # with the output module specified in options.
@@ -250,6 +261,7 @@ class Application(QtCore.QObject):
             prev_flow = None
             for item in self.items:
                 flow = self.new_render_flow(
+                    project,
                     item['name'],
                     options,
                     path_template,
@@ -258,7 +270,6 @@ class Application(QtCore.QObject):
                 if prev_flow and not options.bg:
                     flow.depends_on(prev_flow.tasks[0])
                 prev_flow = flow
-
 
         self.log.debug('Starting Render Flows...')
         self.runner = runner
@@ -272,7 +283,7 @@ class Application(QtCore.QObject):
             self._aerender_popup_monitor = AERenderPopupMonitor()
             self._aerender_popup_monitor.start()
 
-    def new_render_flow(self, item, options, path_template, render_pool):
+    def new_render_flow(self, project, item, options, path_template, render_pool):
         # Get required flow data...
         sg_ctx = self.engine.context
         comp_item = self.engine.get_comp(item)
@@ -290,7 +301,6 @@ class Application(QtCore.QObject):
         output_path = path_template.format(folder=render_folder, name=item)
         output_resolution = comp_item.width, comp_item.height
         framerate = 1.0 / comp_item.frameDuration
-        project = self.engine.project_path
 
         # Build the flow context...
         flow_ctx = {
@@ -304,15 +314,10 @@ class Application(QtCore.QObject):
             'output_path': output_path,
             'output_resolution': output_resolution,
             'framerate': framerate,
-            'project': self.engine.project_path,
+            'project': project,
             'host': 'AfterFX',
             'host_version': self.host_version,
         }
-
-        # Use a separate threadpool for AERender processes. When background rendering
-        # the aerender process is the least reliable.
-        # aerender_pool = QtCore.QThreadPool()
-        # aerender_pool.setMaxThreadCount(options.bg_threads)
 
         with Flow(item) as flow:
 
@@ -436,6 +441,12 @@ class Application(QtCore.QObject):
                         f'{token}.{extension}'
                     )
         return output_path.replace(token, '{name}')
+
+    def generate_bg_project_path(self, render_id, project_path):
+        dirname, basename = os.path.split(project_path)
+        filename, extension = os.path.splitext(basename)
+        stamp = f'{render_id}_{datetime.now().strftime("%Y-%m-%d_%H-%M")}'
+        return os.path.join(dirname, 'aeq', f'{filename}_{stamp}{extension}')
 
     def show_context_menu(self, point):
         # Get selected item
