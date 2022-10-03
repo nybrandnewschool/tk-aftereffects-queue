@@ -174,6 +174,10 @@ class AEQueueApplication(sgtk.platform.Application):
         '''Make sure the current context is up to date with your project context.'''
 
         current_ctx = self.engine.context
+        if current_ctx.task:
+            current_task_name = current_ctx.task["name"]
+        else:
+            current_task_name = None
 
         try:
             project_ctx = self.engine.sgtk.context_from_path(self.engine.project_path)
@@ -188,12 +192,18 @@ class AEQueueApplication(sgtk.platform.Application):
                     ['entity', 'is', project_ctx.entity],
                     ['step', 'is', project_ctx.step],
                 ],
+                fields=["content"],
             )
-            if len(tasks) < 2:
-                task = tasks[0]
-                project_ctx = self.engine.sgtk.context_from_entity('Task', task['id'])
-            else:
+            if not tasks:
                 return False, "Can't determine Task. Please use ShotGrid Open/Save..."
+
+            for task in tasks:
+                if task['content'] == current_task_name:
+                    break
+            else:
+                task = tasks[0]
+
+            project_ctx = self.engine.sgtk.context_from_entity('Task', task['id'])
 
         should_change_context = (
             current_ctx.project != project_ctx.project
