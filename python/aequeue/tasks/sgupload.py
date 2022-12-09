@@ -114,7 +114,13 @@ class SGUploadVersion(Task):
                 return_fields=return_fields,
             )
         else:
-            sg.update('Version', version['id'], version_data)
+            update_data = {
+                "description": version_data["description"],
+                "sg_status_list": version_data["sg_status_list"],
+                "sg_path_to_frames": version_data["sg_path_to_frames"]
+            }
+            version.update(update_data)
+            sg.update('Version', version['id'], update_data)
 
         return version
 
