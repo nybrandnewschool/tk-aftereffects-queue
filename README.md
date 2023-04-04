@@ -22,10 +22,6 @@ When an error occurs during rendering, users can view a report, and when configu
     <img src="https://raw.github.com/nybrandnewschool/tk-aftereffects-queue/master/res/aequeue_demo_reporting.gif"/>
 </p>
 
-## TODO
-- Make UI dpi-aware.
-- Add Publish step to publish the base render (and aep?)
-
 # Installing
 To install AEQueue make the changes in the `example_config` directory to your own toolkit config. This includes the following:
 
