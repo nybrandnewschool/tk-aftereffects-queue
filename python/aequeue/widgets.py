@@ -10,13 +10,12 @@ from .vendor.Qt import QtCore, QtGui, QtWidgets
 
 
 def lerp(a, b, t):
-    '''Linearly interpolate between two values.'''
+    """Linearly interpolate between two values."""
 
     return (1 - t) * a + t * b
 
 
 class ValueAnimation(QtCore.QVariantAnimation):
-
     value_changed = QtCore.Signal(object)
 
     def updateCurrentTime(self, time):
@@ -28,63 +27,53 @@ class ValueAnimation(QtCore.QVariantAnimation):
 
 class Theme:
     color_codes = {
-        'light_highlight': '#DDDDDD',
-        'light': '#AFAFAF',
-        'dark': '#1A1A1A',
-        'on_surface_highlight': '#393939',
-        'on_surface': '#303030',
-        'surface_highlight': '#292929',
-        'surface': '#202020',
-        'on_color': '#F2F2F2',
-        'yellow': '#F2C94C',
-        'red': '#EB5757',
-        'purple': '#9B51E0',
-        'blue': '#2D9CDB',
-        'green': '#219653',
+        "light_highlight": "#DDDDDD",
+        "light": "#AFAFAF",
+        "dark": "#1A1A1A",
+        "on_surface_highlight": "#393939",
+        "on_surface": "#303030",
+        "surface_highlight": "#292929",
+        "surface": "#202020",
+        "on_color": "#F2F2F2",
+        "yellow": "#F2C94C",
+        "red": "#EB5757",
+        "purple": "#9B51E0",
+        "blue": "#2D9CDB",
+        "green": "#219653",
     }
-    colors = {
-        key: QtGui.QColor(value)
-        for key, value in color_codes.items()
-    }
+    colors = {key: QtGui.QColor(value) for key, value in color_codes.items()}
     status_color_codes = {
         # Steps
-        const.Queued: color_codes['on_surface'],
-        const.Rendering: color_codes['yellow'],
-        const.Encoding: color_codes['red'],
-        const.Moving: color_codes['purple'],
-        const.Copying: color_codes['purple'],
-        const.Uploading: color_codes['blue'],
-        const.Publishing: color_codes['blue'],
-        const.Done: color_codes['green'],
+        const.Queued: color_codes["on_surface"],
+        const.Rendering: color_codes["yellow"],
+        const.Encoding: color_codes["red"],
+        const.Moving: color_codes["purple"],
+        const.Copying: color_codes["purple"],
+        const.Uploading: color_codes["blue"],
+        const.Publishing: color_codes["blue"],
+        const.Done: color_codes["green"],
         # Statuses
-        const.Waiting: color_codes['on_surface'],
-        const.Running: color_codes['yellow'],
-        const.Cancelled: color_codes['yellow'],
-        const.Revoked: color_codes['purple'],
-        const.Failed: color_codes['red'],
-        const.Success: color_codes['green'],
+        const.Waiting: color_codes["on_surface"],
+        const.Running: color_codes["yellow"],
+        const.Cancelled: color_codes["yellow"],
+        const.Revoked: color_codes["purple"],
+        const.Failed: color_codes["red"],
+        const.Success: color_codes["green"],
     }
     status_colors = {
-        key: QtGui.QColor(value)
-        for key, value in status_color_codes.items()
+        key: QtGui.QColor(value) for key, value in status_color_codes.items()
     }
     icons = resources.get_icon_variables()
     variables = {
-        'h1': (
-            'font-family: "Roboto";\n'
-            'font-size: 14px;\n'
-        ),
-        'p': (
-            'font-family: "Roboto";\n'
-            'font-size: 12px;\n'
-        ),
-        'border': 'border: 1px solid $on_surface',
-        'border_highlight': 'border: 1px solid $on_surface_highlight',
-        'border_up_button': 'border-width: 1px 1px 0px 0px',
-        'border_dn_button': 'border-width: 0px 0px 1px 1px',
-        'rounded': 'border-radius: 3px',
-        'border_thick': 'border: 2px solid $on_surface',
-        'outline': 'outline: 1px solid $on_surface_highlight'
+        "h1": ('font-family: "Roboto";\n' "font-size: 14px;\n"),
+        "p": ('font-family: "Roboto";\n' "font-size: 12px;\n"),
+        "border": "border: 1px solid $on_surface",
+        "border_highlight": "border: 1px solid $on_surface_highlight",
+        "border_up_button": "border-width: 1px 1px 0px 0px",
+        "border_dn_button": "border-width: 0px 0px 1px 1px",
+        "rounded": "border-radius: 3px",
+        "border_thick": "border: 2px solid $on_surface",
+        "outline": "outline: 1px solid $on_surface_highlight",
     }
 
     @classmethod
@@ -101,8 +90,8 @@ class Theme:
 
 
 class SectionHeader(QtWidgets.QWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QWidget {
             background: $surface;
         }
@@ -162,7 +151,8 @@ class SectionHeader(QtWidgets.QWidget):
             font-weight: bold;
             color: $cancelled;
         }
-    ''')
+    """
+    )
 
     def __init__(self, label, parent=None):
         super(SectionHeader, self).__init__(parent)
@@ -199,8 +189,8 @@ class SectionHeader(QtWidgets.QWidget):
         self.setStyleSheet(self.css)
 
     def set_status(self, status):
-        self.setProperty('status', status)
-        self.label.setProperty('status', status)
+        self.setProperty("status", status)
+        self.label.setProperty("status", status)
         self.setStyleSheet(self.css)
 
     def set_label(self, text):
@@ -224,7 +214,7 @@ class SectionHeader(QtWidgets.QWidget):
 
     def label_fade_out(self):
         self.start_fade()
-        self._anim = QtCore.QPropertyAnimation(self._anim_effect, b'opacity')
+        self._anim = QtCore.QPropertyAnimation(self._anim_effect, b"opacity")
         self._anim.setDuration(100)
         self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._anim.setStartValue(1.0)
@@ -233,7 +223,7 @@ class SectionHeader(QtWidgets.QWidget):
         return self._anim
 
     def label_fade_in(self):
-        self._anim = QtCore.QPropertyAnimation(self._anim_effect, b'opacity')
+        self._anim = QtCore.QPropertyAnimation(self._anim_effect, b"opacity")
         self._anim.setDuration(200)
         self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._anim.setStartValue(0.0)
@@ -244,8 +234,8 @@ class SectionHeader(QtWidgets.QWidget):
 
 
 class Tool(QtWidgets.QToolButton):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QToolButton {
             $rounded;
             border: None;
@@ -262,7 +252,8 @@ class Tool(QtWidgets.QToolButton):
             $border;
             background: $dark;
         }
-    ''')
+    """
+    )
 
     def __init__(self, icon, parent=None):
         super(Tool, self).__init__(parent)
@@ -277,12 +268,14 @@ class Tool(QtWidgets.QToolButton):
 
 
 class CheckBox(QtWidgets.QCheckBox):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QCheckBox {
+            $p;
             border: 0;
             padding: 2px;
             background: transparent;
+            color: $light;
         }
         QCheckBox::indicator {
             width: 20px;
@@ -318,19 +311,24 @@ class CheckBox(QtWidgets.QCheckBox):
         QCheckBox::indeterminate:checked:pressed {
             image: url("$cb_indeterminate");
         }
-    ''')
+    """
+    )
 
-    def __init__(self, parent=None):
-        super(CheckBox, self).__init__(parent)
+    def __init__(self, text=None, parent=None):
+        super(CheckBox, self).__init__(text, parent)
 
-        self.setMinimumSize(24, 24)
-        self.setFixedSize(24, 24)
+        if not text:
+            self.setMinimumSize(24, 24)
+            self.setFixedSize(24, 24)
+        else:
+            self.setFixedHeight(24)
+
         self.setStyleSheet(self.css)
 
 
 class ComboBox(QtWidgets.QComboBox):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QComboBox {
             $p;
             $border;
@@ -378,7 +376,8 @@ class ComboBox(QtWidgets.QComboBox):
         QListView::item:selected {
             background: $on_surface;
         }
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(ComboBox, self).__init__(parent)
@@ -389,8 +388,8 @@ class ComboBox(QtWidgets.QComboBox):
 
 
 class LineEdit(QtWidgets.QLineEdit):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QLineEdit {
             $p;
             $border;
@@ -416,7 +415,8 @@ class LineEdit(QtWidgets.QLineEdit):
         QLineEdit[text=""]::hover{
             color: $light;
         }
-    ''')
+    """
+    )
 
     def __init__(self, placeholder=None, parent=None):
         super(LineEdit, self).__init__(parent)
@@ -430,8 +430,8 @@ class LineEdit(QtWidgets.QLineEdit):
 
 
 class SpinBox(QtWidgets.QSpinBox):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QSpinBox {
             $p;
             $border;
@@ -515,7 +515,8 @@ class SpinBox(QtWidgets.QSpinBox):
            image: url("$caret_down_disabled");
         }
 
-    ''')
+    """
+    )
 
     def __init__(self, placeholder=None, parent=None):
         super(SpinBox, self).__init__(parent)
@@ -525,8 +526,8 @@ class SpinBox(QtWidgets.QSpinBox):
 
 
 class Status(QtWidgets.QWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QWidget {
             $rounded;
         }
@@ -568,7 +569,8 @@ class Status(QtWidgets.QWidget):
             color: $on_color;
             background: transparent;
         }
-    ''')
+    """
+    )
 
     def __init__(self, status, percent, parent=None):
         super(Status, self).__init__(parent)
@@ -585,7 +587,7 @@ class Status(QtWidgets.QWidget):
         self.layout.addWidget(self.bar, 0, 0, alignment=QtCore.Qt.AlignLeft)
         self.layout.addWidget(self.label, 0, 0)
 
-        self.setProperty('status', 'default')
+        self.setProperty("status", "default")
         self.setFixedHeight(24)
         self.setFixedWidth(100)
         self.setLayout(self.layout)
@@ -593,15 +595,15 @@ class Status(QtWidgets.QWidget):
         self.set(status, percent)
 
     def set(self, status, percent):
-        self.bar.setProperty('status', status.lower().split()[0])
+        self.bar.setProperty("status", status.lower().split()[0])
         self.bar.setFixedWidth(percent)
         self.label.setText(status.title())
         self.setStyleSheet(self.css)
 
 
 class Menu(QtWidgets.QMenu):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QMenu {
             $p;
             $border;
@@ -622,7 +624,8 @@ class Menu(QtWidgets.QMenu):
             padding-left: 10px;
             padding-right: 0px;
         }
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(Menu, self).__init__(parent)
@@ -630,8 +633,8 @@ class Menu(QtWidgets.QMenu):
 
 
 class KebabMenu(QtWidgets.QPushButton):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QPushButton[menu_visible="false"] {
             $rounded;
             border: 0;
@@ -694,7 +697,8 @@ class KebabMenu(QtWidgets.QPushButton):
             padding-left: 10px;
             padding-right: 0px;
         }
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(KebabMenu, self).__init__(parent)
@@ -707,7 +711,7 @@ class KebabMenu(QtWidgets.QPushButton):
         self.setStyleSheet(self.css)
         self.setFixedSize(QtCore.QSize(20, 24))
         self.setEnabled(False)
-        self.setProperty('menu_visible', False)
+        self.setProperty("menu_visible", False)
 
     def clear(self):
         self._menu.clear()
@@ -720,13 +724,13 @@ class KebabMenu(QtWidgets.QPushButton):
         self.setEnabled(True)
 
     def show_menu(self):
-        self.setProperty('menu_visible', True)
+        self.setProperty("menu_visible", True)
         self.setStyleSheet(self.css)
         self.before_show_menu()
 
     def before_show_menu(self):
         menu_size = self._menu.sizeHint()
-        self._anim = QtCore.QPropertyAnimation(self._menu, b'size', self)
+        self._anim = QtCore.QPropertyAnimation(self._menu, b"size", self)
         self._anim.setDuration(200)
         self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._anim.setStartValue(QtCore.QSize(menu_size.width(), 0))
@@ -736,13 +740,13 @@ class KebabMenu(QtWidgets.QPushButton):
         QtCore.QTimer.singleShot(20, self._menu.show)
 
     def before_hide_menu(self):
-        self.setProperty('menu_visible', False)
+        self.setProperty("menu_visible", False)
         self.setStyleSheet(self.css)
 
 
 class RenderQueueItemWidget(QtWidgets.QWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QWidget {
             background: transparent;
         }
@@ -750,7 +754,8 @@ class RenderQueueItemWidget(QtWidgets.QWidget):
             $h1;
             color: $light_highlight;
         }
-    ''')
+    """
+    )
 
     def __init__(self, label, status, percent, parent=None):
         super(RenderQueueItemWidget, self).__init__(parent)
@@ -776,7 +781,7 @@ class RenderQueueItemWidget(QtWidgets.QWidget):
         self.setStyleSheet(self.css)
 
     def set_margin_for_scrollbar_state(self, state):
-        if state == 'visible':
+        if state == "visible":
             self.layout.setContentsMargins(14, 0, 4, 0)
         else:
             self.layout.setContentsMargins(14, 0, 14, 0)
@@ -786,8 +791,8 @@ class RenderQueueItemWidget(QtWidgets.QWidget):
 
 
 class RenderQueue(QtWidgets.QListWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QListView {
             $p;
             $border;
@@ -866,7 +871,8 @@ class RenderQueue(QtWidgets.QListWidget):
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
             background: transparent;
         }
-    ''')
+    """
+    )
     drop = QtCore.Signal(object)
     drag = QtCore.Signal(object)
 
@@ -891,14 +897,14 @@ class RenderQueue(QtWidgets.QListWidget):
 
     def eventFilter(self, source, event):
         if source == self.verticalScrollBar():
-            cur_value = self.property('scroll')
+            cur_value = self.property("scroll")
             if self.verticalScrollBar().isVisible():
-                self.setProperty('scroll', 'visible')
+                self.setProperty("scroll", "visible")
             else:
-                self.setProperty('scroll', 'hidden')
-            if cur_value != self.property('scroll'):
+                self.setProperty("scroll", "hidden")
+            if cur_value != self.property("scroll"):
                 for item in self.items.values():
-                    item.widget.set_margin_for_scrollbar_state(self.property('scroll'))
+                    item.widget.set_margin_for_scrollbar_state(self.property("scroll"))
                 self.setStyleSheet(self.css)
         return super(RenderQueue, self).eventFilter(source, event)
 
@@ -922,7 +928,7 @@ class RenderQueue(QtWidgets.QListWidget):
         item = QtWidgets.QListWidgetItem()
         item.label = label
         item.widget = RenderQueueItemWidget(label, status, percent)
-        item.widget.set_margin_for_scrollbar_state(self.property('scroll'))
+        item.widget.set_margin_for_scrollbar_state(self.property("scroll"))
         item.setSizeHint(item.widget.sizeHint())
         self.items[label] = item
         self.addItem(item)
@@ -950,8 +956,8 @@ class RenderQueue(QtWidgets.QListWidget):
 
 
 class LogReport(QtWidgets.QTextEdit):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QTextEdit {
             $p;
             $border;
@@ -1009,7 +1015,8 @@ class LogReport(QtWidgets.QTextEdit):
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
             background: transparent;
         }
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(LogReport, self).__init__(parent=parent)
@@ -1021,8 +1028,8 @@ class LogReport(QtWidgets.QTextEdit):
 
 
 class Label(QtWidgets.QLabel):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QLabel {
             $p;
             color: $light_highlight;
@@ -1030,7 +1037,8 @@ class Label(QtWidgets.QLabel):
         QLabel:disabled {
             color: $on_surface_highlight;
         }
-    ''')
+    """
+    )
 
     def __init__(self, text, parent=None):
         super(Label, self).__init__(text, parent)
@@ -1039,24 +1047,37 @@ class Label(QtWidgets.QLabel):
 
 
 class Options(QtWidgets.QWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QWidget {
             background: $surface;
         }
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(Options, self).__init__(parent)
 
         self.module = ComboBox()
-        self.module.addItems(['PNG', 'Prores 422', 'Prores 444'])
+        self.module.addItems(["PNG", "Prores 422", "Prores 444"])
+        self.module.setMinimumWidth(140)
+        self.settings = ComboBox()
+        self.settings.addItems(["Best Settings"])
+        self.settings.setMinimumWidth(100)
+        self.keep_original = CheckBox("Keep?")
+        self.keep_original.setToolTip(
+            "Uncheck to delete the main render after compressing MP4 and GIFs.\n"
+            "Useful if you're rendering only for previewing..."
+        )
+        self.module_layout = QtWidgets.QHBoxLayout()
+        self.module_layout.setSpacing(12)
+        self.module_layout.setStretch(0, 1)
+        self.module_layout.addWidget(self.module)
+        self.module_layout.addWidget(self.keep_original)
 
         self.mp4 = CheckBox()
         self.mp4_quality = ComboBox()
-        self.mp4_quality.addItems(
-            ['High Quality', 'Medium Quality', 'Low Quality']
-        )
+        self.mp4_quality.addItems(["High Quality", "Medium Quality", "Low Quality"])
         self.mp4_quality.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Minimum,
@@ -1070,9 +1091,7 @@ class Options(QtWidgets.QWidget):
 
         self.gif = CheckBox()
         self.gif_quality = ComboBox()
-        self.gif_quality.addItems(
-            ['High Quality', 'Medium Quality', 'Low Quality']
-        )
+        self.gif_quality.addItems(["High Quality", "Medium Quality", "Low Quality"])
         self.gif_quality.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Minimum,
@@ -1084,8 +1103,14 @@ class Options(QtWidgets.QWidget):
         self.gif_layout.addWidget(self.gif)
         self.gif_layout.addWidget(self.gif_quality)
 
+        self.update_keep_original = lambda _: (
+            self.keep_original.setVisible(self.mp4.isChecked() or self.gif.isChecked()),
+        )
+        self.mp4.stateChanged.connect(self.update_keep_original)
+        self.gif.stateChanged.connect(self.update_keep_original)
+
         self.sg = CheckBox()
-        self.sg_comment = LineEdit('Comment...')
+        self.sg_comment = LineEdit("Comment...")
         self.sg.stateChanged.connect(self.sg_comment.setEnabled)
         self.sg_layout = QtWidgets.QHBoxLayout()
         self.sg_layout.setSpacing(12)
@@ -1096,10 +1121,11 @@ class Options(QtWidgets.QWidget):
         self.bg = CheckBox()
         self.bg_threads = SpinBox()
         self.bg.stateChanged.connect(self.bg_threads.setEnabled)
+        self.bg_threads.setEnabled(self.bg.isChecked())
         self.bg_threads.setMinimum(1)
         self.bg_threads.setMaximum(cpu_count())
         self.bg_threads.setValue(4)
-        self.bg_threads.setSuffix(' Threads')
+        self.bg_threads.setSuffix(" Threads")
         self.bg_layout = QtWidgets.QHBoxLayout()
         self.bg_layout.setSpacing(12)
         self.bg_layout.setStretch(1, 1)
@@ -1110,26 +1136,32 @@ class Options(QtWidgets.QWidget):
         self.layout.setContentsMargins(20, 4, 20, 4)
         self.layout.setVerticalSpacing(12)
         self.layout.setHorizontalSpacing(20)
-        self.layout.addRow(Label('Output Module'), self.module)
-        self.layout.addRow(Label('Output MP4'), self.mp4_layout)
-        self.layout.addRow(Label('Output GIF'), self.gif_layout)
-        self.layout.addRow(Label('Upload to ShotGrid'), self.sg_layout)
-        self.layout.addRow(Label('BG Render (Experimental)'), self.bg_layout)
+
+        self.layout.addRow(Label("Render Settings"), self.settings)
+        self.layout.addRow(Label("Output Module"), self.module_layout)
+        self.layout.addRow(Label("Output MP4"), self.mp4_layout)
+        self.layout.addRow(Label("Output GIF"), self.gif_layout)
+        self.layout.addRow(Label("Upload to ShotGrid"), self.sg_layout)
+        self.layout.addRow(Label("BG Render"), self.bg_layout)
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
 
     def get(self):
         return {
-            'module': self.module.currentText(),
-            'mp4': self.mp4.isChecked(),
-            'mp4_quality': self.mp4_quality.currentText(),
-            'gif': self.gif.isChecked(),
-            'gif_quality': self.gif_quality.currentText(),
-            'sg': self.sg.isChecked(),
-            'sg_comment': self.sg_comment.text(),
-            'bg': self.bg.isChecked(),
-            'bg_threads': self.bg_threads.value(),
+            "settings": self.settings.currentText(),
+            "module": self.module.currentText(),
+            "keep_original": (
+                not self.keep_original.isVisible() or self.keep_original.isChecked()
+            ),
+            "mp4": self.mp4.isChecked(),
+            "mp4_quality": self.mp4_quality.currentText(),
+            "gif": self.gif.isChecked(),
+            "gif_quality": self.gif_quality.currentText(),
+            "sg": self.sg.isChecked(),
+            "sg_comment": self.sg_comment.text(),
+            "bg": self.bg.isChecked(),
+            "bg_threads": self.bg_threads.value(),
         }
 
     def set(self, **options):
@@ -1162,7 +1194,7 @@ class Options(QtWidgets.QWidget):
 
 
 class Movie(QtWidgets.QLabel):
-    '''Generic Movie class, supports playback of gifs and other media.'''
+    """Generic Movie class, supports playback of gifs and other media."""
 
     def __init__(self, file_path=None, parent=None):
         super(Movie, self).__init__(parent=parent)
@@ -1185,7 +1217,7 @@ class Movie(QtWidgets.QLabel):
         self.movie.stop()
 
     def set(self, file_path):
-        '''Sets the current movie and clears the movie queue.'''
+        """Sets the current movie and clears the movie queue."""
 
         if self.movie.state() is self.movie.Running:
             self.movie.stop()
@@ -1195,7 +1227,7 @@ class Movie(QtWidgets.QLabel):
         self.movie.start()
 
     def queue(self, file_path):
-        '''Queues a movie to play once the current movie is finished.'''
+        """Queues a movie to play once the current movie is finished."""
 
         self.movie_queue.insert(0, file_path)
 
@@ -1210,11 +1242,11 @@ class Movie(QtWidgets.QLabel):
 
 
 class Gif(Movie):
-    '''Alias for Movie to make code intentions clear.'''
+    """Alias for Movie to make code intentions clear."""
 
 
 class StatusIndicator(Movie):
-    '''Movie with predefined Gifs for different statuses.'''
+    """Movie with predefined Gifs for different statuses."""
 
     def __init__(self, parent=None):
         super(StatusIndicator, self).__init__(parent=parent)
@@ -1224,24 +1256,24 @@ class StatusIndicator(Movie):
         if status == const.Waiting:
             self.stop()
         elif status == const.Running:
-            self.set(resources.get_path('Running_20.gif'))
+            self.set(resources.get_path("Running_20.gif"))
             self.start()
         elif status == const.Failed:
-            self.queue(resources.get_path('Failed_20.gif'))
+            self.queue(resources.get_path("Failed_20.gif"))
             self.start()
         elif status == const.Success:
-            self.queue(resources.get_path('Success_20.gif'))
+            self.queue(resources.get_path("Success_20.gif"))
             self.start()
         elif status == const.Cancelled:
-            self.queue(resources.get_path('Cancelled_20.gif'))
+            self.queue(resources.get_path("Cancelled_20.gif"))
             self.start()
         else:
-            raise ValueError('No status animation available for: %s' % status)
+            raise ValueError("No status animation available for: %s" % status)
 
 
 class BigButton(QtWidgets.QPushButton):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QPushButton {
             $h1;
             $rounded;
@@ -1259,7 +1291,8 @@ class BigButton(QtWidgets.QPushButton):
             $border;
             background: $dark;
         }
-    ''')
+    """
+    )
 
     clicked = QtCore.Signal()
 
@@ -1275,10 +1308,11 @@ class BigButton(QtWidgets.QPushButton):
 
 
 class Footer(QtWidgets.QWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         background: $surface;
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(Footer, self).__init__(parent)
@@ -1302,8 +1336,8 @@ class Footer(QtWidgets.QWidget):
 
 
 class Toast(QtWidgets.QWidget):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         QWidget[status="info"]{
             background: $uploading;
         }
@@ -1318,7 +1352,8 @@ class Toast(QtWidgets.QWidget):
             color: $on_color;
             background: transparent;
         }
-    ''')
+    """
+    )
 
     def __init__(self, status, icon, message, duration, parent=None):
         super(Toast, self).__init__(parent=parent)
@@ -1345,7 +1380,7 @@ class Toast(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Expanding,
         )
-        self.setProperty('status', self.status)
+        self.setProperty("status", self.status)
         self.setStyleSheet(self.css)
         self.setGeometry(QtCore.QRect(0, 0, 9999, 1))
         self.hide()
@@ -1353,7 +1388,7 @@ class Toast(QtWidgets.QWidget):
     def show(self, status=None, icon=None, message=None, duration=None):
         if status:
             self.status = status
-            self.setProperty('status', status)
+            self.setProperty("status", status)
             self.setStyleSheet(self.css)
         if icon:
             self.icon.setPixmap(QtGui.QPixmap(icon))
@@ -1367,7 +1402,7 @@ class Toast(QtWidgets.QWidget):
         super(Toast, self).show()
 
         if not self._open:
-            self._anim = QtCore.QPropertyAnimation(self, b'geometry', self)
+            self._anim = QtCore.QPropertyAnimation(self, b"geometry", self)
             self._anim.setDuration(200)
             self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
             self._anim.setStartValue(QtCore.QRect(0, 0, 9999, 1))
@@ -1383,7 +1418,7 @@ class Toast(QtWidgets.QWidget):
 
     def expire(self):
         self._open = False
-        self._anim = QtCore.QPropertyAnimation(self, b'geometry', self)
+        self._anim = QtCore.QPropertyAnimation(self, b"geometry", self)
         self._anim.setDuration(200)
         self._anim.setEasingCurve(QtCore.QEasingCurve.InCubic)
         self._anim.setStartValue(QtCore.QRect(0, 0, 9999, 46))
@@ -1398,35 +1433,36 @@ class Toast(QtWidgets.QWidget):
 
 
 class Window(QtWidgets.QDialog):
-
-    css = Theme.StyleSheet('''
+    css = Theme.StyleSheet(
+        """
         * {
             outline: none;
         }
         QWidget {
             background: $surface;
         }
-    ''')
+    """
+    )
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
 
         # Header
-        self.reset_button = Tool(resources.get_path('arrow_counterclockwise.png'))
-        self.reset_button.setToolTip('Reset queue.')
+        self.reset_button = Tool(resources.get_path("arrow_counterclockwise.png"))
+        self.reset_button.setToolTip("Reset queue.")
         self.reset_button.setVisible(False)
-        self.queue_button = Tool(resources.get_path('arrow_download.png'))
-        self.queue_button.setToolTip('Add selected comps to queue...')
-        self.cancel_button = Tool(resources.get_path('pause.png'))
-        self.cancel_button.setToolTip('Cancel!')
+        self.queue_button = Tool(resources.get_path("arrow_download.png"))
+        self.queue_button.setToolTip("Add selected comps to queue...")
+        self.cancel_button = Tool(resources.get_path("pause.png"))
+        self.cancel_button.setToolTip("Cancel!")
         self.cancel_button.setVisible(False)
-        self.queue_header = SectionHeader('QUEUE')
+        self.queue_header = SectionHeader("QUEUE")
         self.queue_header.right.addWidget(self.queue_button)
         self.queue_header.right.addWidget(self.reset_button)
         self.queue_header.right.addWidget(self.cancel_button)
 
         # Toast - Sliding notification that overlays on top of Header
-        self.toast = Toast('info', resources.get_path('info.png'), '', 3000)
+        self.toast = Toast("info", resources.get_path("info.png"), "", 3000)
 
         # Body
         self.queue = RenderQueue()
@@ -1435,12 +1471,12 @@ class Window(QtWidgets.QDialog):
 
         # Tools - Parented to options_header
         self.status_indicator = StatusIndicator()
-        self.report_button = Tool(resources.get_path('report.png'))
-        self.report_button.setToolTip('View Report')
+        self.report_button = Tool(resources.get_path("report.png"))
+        self.report_button.setToolTip("View Report")
         self.report_button.setVisible(False)
         self.report_button.clicked.connect(self.toggle_report)
-        self.send_button = Tool(resources.get_path('send.png'))
-        self.send_button.setToolTip('Send Error Report')
+        self.send_button = Tool(resources.get_path("send.png"))
+        self.send_button.setToolTip("Send Error Report")
         self.send_button.setVisible(False)
 
         # Options
@@ -1454,13 +1490,13 @@ class Window(QtWidgets.QDialog):
             bg=False,
             bg_threads=4,
         )
-        self.options_header = SectionHeader('OPTIONS')
+        self.options_header = SectionHeader("OPTIONS")
         self.options_header.right.addWidget(self.status_indicator)
         self.options_header.right.addWidget(self.send_button)
         self.options_header.right.addWidget(self.report_button)
 
         # Footer
-        self.render_button = BigButton('RENDER')
+        self.render_button = BigButton("RENDER")
         self.footer = Footer()
         self.footer.setMinimumHeight(0)
         self.footer.layout.addWidget(self.render_button)
@@ -1493,8 +1529,8 @@ class Window(QtWidgets.QDialog):
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
-        self.setWindowTitle('Render and Review')
-        self.setWindowIcon(QtGui.QIcon(resources.get_path('icon_dark.png')))
+        self.setWindowTitle("Render and Review")
+        self.setWindowIcon(QtGui.QIcon(resources.get_path("icon_dark.png")))
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         self.resize(360, 540)
 
@@ -1502,7 +1538,7 @@ class Window(QtWidgets.QDialog):
         self.status_indicator.set_status(status)
         self.options_header.set_status(status)
         if status == const.Waiting:
-            self.options_header.set_label('OPTIONS')
+            self.options_header.set_label("OPTIONS")
             self.options.setEnabled(True)
             self.render_button.setEnabled(True)
             self.queue_button.setVisible(True)
@@ -1514,7 +1550,7 @@ class Window(QtWidgets.QDialog):
             self.hide_report()
             self.show_options()
         elif status == const.Running:
-            self.options_header.transition_label('RUNNING')
+            self.options_header.transition_label("RUNNING")
             self.options.setEnabled(False)
             self.render_button.setEnabled(False)
             self.queue_button.setVisible(False)
@@ -1525,37 +1561,37 @@ class Window(QtWidgets.QDialog):
             self.send_button.setVisible(False)
             self.hide_options()
         elif status == const.Cancelled:
-            self.options_header.transition_label('CANCELLED')
+            self.options_header.transition_label("CANCELLED")
             self.options.setEnabled(False)
             self.render_button.setEnabled(False)
             self.reset_button.setVisible(True)
             self.cancel_button.setVisible(False)
             self.status_indicator.setVisible(True)
             self.report_button.setVisible(True)
-            self.report_button.set_icon(resources.get_path('report.png'))
-            self.report_button.setToolTip('View Report')
+            self.report_button.set_icon(resources.get_path("report.png"))
+            self.report_button.setToolTip("View Report")
             self.send_button.setVisible(False)
         elif status == const.Success:
-            self.options_header.transition_label('SUCCESS')
+            self.options_header.transition_label("SUCCESS")
             self.options.setEnabled(False)
             self.render_button.setEnabled(False)
             self.reset_button.setVisible(True)
             self.cancel_button.setVisible(False)
             self.status_indicator.setVisible(True)
             self.report_button.setVisible(True)
-            self.report_button.set_icon(resources.get_path('report.png'))
-            self.report_button.setToolTip('View Report')
+            self.report_button.set_icon(resources.get_path("report.png"))
+            self.report_button.setToolTip("View Report")
             self.send_button.setVisible(False)
         elif status == const.Failed:
-            self.options_header.transition_label('FAILED')
+            self.options_header.transition_label("FAILED")
             self.options.setEnabled(False)
             self.render_button.setEnabled(False)
             self.reset_button.setVisible(True)
             self.cancel_button.setVisible(False)
             self.status_indicator.setVisible(True)
             self.report_button.setVisible(True)
-            self.report_button.set_icon(resources.get_path('error_report.png'))
-            self.report_button.setToolTip('View Error Report')
+            self.report_button.set_icon(resources.get_path("error_report.png"))
+            self.report_button.setToolTip("View Error Report")
             self.send_button.setVisible(True)
 
     def toggle_report(self):
@@ -1568,7 +1604,7 @@ class Window(QtWidgets.QDialog):
         if self.report.isVisible():
             return
         pos = self.queue.pos()
-        self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b'pos')
+        self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b"pos")
         self._slide_report_anim.setDuration(300)
         self._slide_report_anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._slide_report_anim.setStartValue(QtCore.QPoint(self.width(), pos.y()))
@@ -1580,7 +1616,7 @@ class Window(QtWidgets.QDialog):
         if self.isVisible() and not self.report.isVisible():
             return
         pos = self.report.pos()
-        self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b'pos')
+        self._slide_report_anim = QtCore.QPropertyAnimation(self.report, b"pos")
         self._slide_report_anim.setDuration(300)
         self._slide_report_anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._slide_report_anim.setStartValue(QtCore.QPoint(0, pos.y()))
@@ -1598,7 +1634,7 @@ class Window(QtWidgets.QDialog):
             - self.options.sizeHint().height()
             - self.footer.sizeHint().height()
         )
-        self._anim = QtCore.QPropertyAnimation(self, b'geometry')
+        self._anim = QtCore.QPropertyAnimation(self, b"geometry")
         self._anim.setDuration(200)
         self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._anim.setStartValue(start_value)
@@ -1618,7 +1654,7 @@ class Window(QtWidgets.QDialog):
             + self.options.sizeHint().height()
             + self.footer.sizeHint().height()
         )
-        self._anim = QtCore.QPropertyAnimation(self, b'geometry')
+        self._anim = QtCore.QPropertyAnimation(self, b"geometry")
         self._anim.setDuration(200)
         self._anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
         self._anim.setStartValue(start_value)
@@ -1630,24 +1666,24 @@ class Window(QtWidgets.QDialog):
 
     def show_error(self, message, duration=3000):
         self.toast.show(
-            status='error',
-            icon=resources.get_path('error.png'),
+            status="error",
+            icon=resources.get_path("error.png"),
             message=message,
             duration=duration,
         )
 
     def show_info(self, message, duration=3000):
         self.toast.show(
-            status='info',
-            icon=resources.get_path('info.png'),
+            status="info",
+            icon=resources.get_path("info.png"),
             message=message,
             duration=duration,
         )
 
     def show_warning(self, message, duration=3000):
         self.toast.show(
-            status='warning',
-            icon=resources.get_path('warning.png'),
+            status="warning",
+            icon=resources.get_path("warning.png"),
             message=message,
             duration=duration,
         )
@@ -1656,6 +1692,7 @@ class Window(QtWidgets.QDialog):
 def DEBUG(msg, *args):
     try:
         import sgtk
+
         sgtk.platform.current_engine().log_debug(msg, *args)
     except:
         if args:

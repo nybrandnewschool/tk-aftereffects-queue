@@ -67,6 +67,13 @@ configuration:
       High Quality = Resolution equivaluent to max(width, 1920)
       Medium Quality = Resolution equivaluent to max(width, 1920) * 0.5
       Low Quality = Resolution equivaluent to max(width, 1920) * 0.25
+  default_render_settings:
+    type: list
+    values:
+      type: str
+    default_value: ['Best Settings']
+    description: A list of default render settings in order of preference. The first
+                 existing render setting will be used as the default in the RQ UI.
   default_output_module:
     type: list
     values:
