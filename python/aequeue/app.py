@@ -7,27 +7,27 @@ from datetime import datetime
 from queue import Queue
 
 # Local imports
-from . import const, resources, ae, paths
+from . import ae, const, paths, resources
 from .options import RenderOptions
 from .render import AERenderPopupMonitor
-from .widgets import Window, Menu
+from .tasks.aerender import AERenderComp, BackgroundAERenderComp
+from .tasks.copy import Copy
 from .tasks.core import (
+    Flow,
     LogFormatter,
     Runner,
-    Flow,
+    call_in_main,
     generate_html_report,
     generate_report,
-    call_in_main,
 )
-from .tasks.aerender import AERenderComp, BackgroundAERenderComp
-from .tasks.encode import EncodeMP4, EncodeGIF
-from .tasks.copy import Copy
 from .tasks.delete import Delete
-from .tasks.move import Move
-from .tasks.sgupload import SGUploadVersion
-from .tasks.sgpublish import SGPublish
+from .tasks.encode import EncodeGIF, EncodeMP4
 from .tasks.generic import ErrorTask
+from .tasks.move import Move
+from .tasks.sgpublish import SGPublish
+from .tasks.sgupload import SGUploadVersion
 from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .widgets import Menu, Window
 
 
 class Application(QtCore.QObject):
@@ -273,20 +273,26 @@ class Application(QtCore.QObject):
             # Generate a path template by creating a temporary render queue item
             # with the output module specified in options.
             path_template = self.generate_path_template(options.module)
+            self.log.debug("PATH TEMPLATE: %s", path_template)
 
             # Create flow for each item
-            prev_flow = None
-            for item in self.items:
-                flow = self.new_render_flow(
-                    project,
-                    item["name"],
-                    options,
-                    path_template,
-                    render_pool,
-                )
-                if prev_flow and not options.bg:
-                    flow.depends_on(prev_flow.tasks[0])
-                prev_flow = flow
+            try:
+                prev_flow = None
+                for item in self.items:
+                    flow = self.new_render_flow(
+                        project,
+                        item["name"],
+                        options,
+                        path_template,
+                        render_pool,
+                    )
+                    if prev_flow and not options.bg:
+                        flow.depends_on(prev_flow.tasks[0])
+                    prev_flow = flow
+            except Exception:
+                self.log.exception("Failed to create render flows...")
+                self.set_render_status(const.Failed)
+                return
 
         self.log.debug("Starting Render Flows...")
         self.runner = runner
@@ -345,7 +351,7 @@ class Application(QtCore.QObject):
                 project=project,
                 comp=item,
                 output_module=options.module,
-                render_setting=options.settings,
+                render_settings=options.settings,
                 output_path=output_path,
             )
             render_comp.pool = render_pool

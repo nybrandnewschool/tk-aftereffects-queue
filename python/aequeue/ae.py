@@ -1,7 +1,7 @@
 import fnmatch
 import os
-import sys
 import re
+import sys
 import threading
 import xml.etree.ElementTree as xmlElementTree
 from contextlib import contextmanager
@@ -190,6 +190,7 @@ class AfterEffectsEngineWrapper(object):
         templates = {}
         if self.render_queue_empty():
             with self.TempComp("QUERY_TEMPLATES") as comp:
+                self.enqueue_comp(comp)
                 templates["output_modules"] = self.find_output_module_templates()
                 templates["render_settings"] = self.find_render_settings_templates()
         else:
