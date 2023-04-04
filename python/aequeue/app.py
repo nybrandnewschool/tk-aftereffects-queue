@@ -7,27 +7,27 @@ from datetime import datetime
 from queue import Queue
 
 # Local imports
-from . import const, resources, ae, paths
+from . import ae, const, paths, resources
 from .options import RenderOptions
 from .render import AERenderPopupMonitor
-from .widgets import Window, Menu
+from .tasks.aerender import AERenderComp, BackgroundAERenderComp
+from .tasks.copy import Copy
 from .tasks.core import (
+    Flow,
     LogFormatter,
     Runner,
-    Flow,
+    call_in_main,
     generate_html_report,
     generate_report,
-    call_in_main,
 )
-from .tasks.aerender import AERenderComp, BackgroundAERenderComp
-from .tasks.encode import EncodeMP4, EncodeGIF
-from .tasks.copy import Copy
 from .tasks.delete import Delete
-from .tasks.move import Move
-from .tasks.sgupload import SGUploadVersion
-from .tasks.sgpublish import SGPublish
+from .tasks.encode import EncodeGIF, EncodeMP4
 from .tasks.generic import ErrorTask
+from .tasks.move import Move
+from .tasks.sgpublish import SGPublish
+from .tasks.sgupload import SGUploadVersion
 from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .widgets import Menu, Window
 
 
 class Application(QtCore.QObject):

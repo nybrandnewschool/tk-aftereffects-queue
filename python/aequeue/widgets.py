@@ -2,8 +2,8 @@ import re
 import sys
 import textwrap
 from multiprocessing import cpu_count
-from weakref import WeakValueDictionary
 from string import Template
+from weakref import WeakValueDictionary
 
 from . import const, resources
 from .vendor.Qt import QtCore, QtGui, QtWidgets
