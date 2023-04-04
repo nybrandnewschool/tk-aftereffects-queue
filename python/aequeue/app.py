@@ -273,20 +273,26 @@ class Application(QtCore.QObject):
             # Generate a path template by creating a temporary render queue item
             # with the output module specified in options.
             path_template = self.generate_path_template(options.module)
+            self.log.debug("PATH TEMPLATE: %s", path_template)
 
             # Create flow for each item
-            prev_flow = None
-            for item in self.items:
-                flow = self.new_render_flow(
-                    project,
-                    item["name"],
-                    options,
-                    path_template,
-                    render_pool,
-                )
-                if prev_flow and not options.bg:
-                    flow.depends_on(prev_flow.tasks[0])
-                prev_flow = flow
+            try:
+                prev_flow = None
+                for item in self.items:
+                    flow = self.new_render_flow(
+                        project,
+                        item["name"],
+                        options,
+                        path_template,
+                        render_pool,
+                    )
+                    if prev_flow and not options.bg:
+                        flow.depends_on(prev_flow.tasks[0])
+                    prev_flow = flow
+            except Exception:
+                self.log.exception("Failed to create render flows...")
+                self.set_render_status(const.Failed)
+                return
 
         self.log.debug("Starting Render Flows...")
         self.runner = runner
@@ -345,7 +351,7 @@ class Application(QtCore.QObject):
                 project=project,
                 comp=item,
                 output_module=options.module,
-                render_setting=options.settings,
+                render_settings=options.settings,
                 output_path=output_path,
             )
             render_comp.pool = render_pool
