@@ -51,6 +51,7 @@ class Theme:
         const.Copying: color_codes["purple"],
         const.Uploading: color_codes["blue"],
         const.Publishing: color_codes["blue"],
+        const.Cleaning: color_codes["blue"],
         const.Done: color_codes["green"],
         # Statuses
         const.Waiting: color_codes["on_surface"],
@@ -126,6 +127,10 @@ class SectionHeader(QtWidgets.QWidget):
         QLabel[status="uploading"]{
             $h1;
             color: $uploading;
+        }
+        QLabel[status="cleaning"]{
+            $h1;
+            color: $cleaning;
         }
         QLabel[status="copying"]{
             $h1;
@@ -560,6 +565,9 @@ class Status(QtWidgets.QWidget):
         }
         QWidget[status="failed"]{
             background: $failed;
+        }
+        QWidget[status="cleaning"]{
+            background: $cleaning;
         }
         QWidget[status="success"]{
             background: $success;
@@ -1142,7 +1150,7 @@ class Options(QtWidgets.QWidget):
         self.layout.addRow(Label("Output MP4"), self.mp4_layout)
         self.layout.addRow(Label("Output GIF"), self.gif_layout)
         self.layout.addRow(Label("Upload to ShotGrid"), self.sg_layout)
-        self.layout.addRow(Label("BG Render"), self.bg_layout)
+        # self.layout.addRow(Label("BG Render"), self.bg_layout)
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet(self.css)
