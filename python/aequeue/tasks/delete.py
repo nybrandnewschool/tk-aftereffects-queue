@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from .. import const
 from .core import Task
@@ -10,18 +9,19 @@ class Delete(Task):
 
     def __init__(self, file, *args, **kwargs):
         self.file = file
-        super(Dlete, self).__init__(*args, **kwargs)
+        super(Delete, self).__init__(*args, **kwargs)
 
     def execute(self):
         # Check for cancelled before performing copy.
         if self.status_request == const.Cancelled:
             return self.accept(const.Cancelled)
 
+        self.log.debug("Removing file %s...", self.file)
+
         if not os.path.exists(self.file):
-            self.log.debug("File does not exist...%s", file)
+            self.log.debug("Skipped: File does not exist...%s", self.file)
             self.set_status(const.Running, 100)
             return
 
-        self.log.debug("Removing %s...", file)
-        os.path.unlink(self.file)
+        os.remove(self.file)
         self.set_status(const.Running, 100)
