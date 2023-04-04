@@ -6,7 +6,6 @@ from .core import Task
 
 
 class Move(Task):
-
     step = const.Moving
 
     def __init__(self, src_file, dst_file, *args, **kwargs):
@@ -18,7 +17,7 @@ class Move(Task):
         dst_dir = os.path.dirname(self.dst_file)
         self.log.debug('Ensuring folder "%s" exists...', dst_dir)
         if not os.path.exists(dst_dir):
-            self.log.debug('Creating dst folder...')
+            self.log.debug("Creating dst folder...")
             os.makedirs(dst_dir)
         self.set_status(const.Running, 50)
 

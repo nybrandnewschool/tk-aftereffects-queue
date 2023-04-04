@@ -12,18 +12,18 @@ from ..vendor.Qt import QtCore, QtWidgets
 
 
 __all__ = [
-    'call_in_main',
-    'clamp',
-    'current',
-    'fit',
-    'fit100',
-    'Flow',
-    'generate_report',
-    'generate_html_report',
-    'LogFormatter',
-    'LogStreamReporter',
-    'Runner',
-    'Task',
+    "call_in_main",
+    "clamp",
+    "current",
+    "fit",
+    "fit100",
+    "Flow",
+    "generate_report",
+    "generate_html_report",
+    "LogFormatter",
+    "LogStreamReporter",
+    "Runner",
+    "Task",
 ]
 
 
@@ -51,7 +51,6 @@ def current(stack):
 
 
 class LogHandler(logging.Handler):
-
     def __init__(self, signals, record_type):
         super(LogHandler, self).__init__()
         self.signals = signals
@@ -67,21 +66,18 @@ class LogHandler(logging.Handler):
 
 
 class LogFormatter(logging.Formatter):
-
-    default_format = (
-        '%(context)s - %(message)s'
-    )
+    default_format = "%(context)s - %(message)s"
 
     def __init__(self, format=None):
         super(LogFormatter, self).__init__(format or self.default_format)
 
     def format(self, record):
         # Add special token to record with as much context as possible.
-        runner_name = getattr(record, 'runner_name', None)
-        flow_name = getattr(record, 'flow_name', None)
-        flow_progress = getattr(record, 'flow_progress', None)
-        flow_step = getattr(record, 'flow_step', None)
-        task_progress = getattr(record, 'task_progress', None)
+        runner_name = getattr(record, "runner_name", None)
+        flow_name = getattr(record, "flow_name", None)
+        flow_progress = getattr(record, "flow_progress", None)
+        flow_step = getattr(record, "flow_step", None)
+        task_progress = getattr(record, "task_progress", None)
 
         context = []
         if runner_name is not None:
@@ -89,18 +85,17 @@ class LogFormatter(logging.Formatter):
         if flow_name is not None:
             context.append(flow_name)
         if flow_progress is not None:
-            context.append('{:>3d}%'.format(int(flow_progress)))
+            context.append("{:>3d}%".format(int(flow_progress)))
         if flow_step is not None:
             context.append(flow_step)
         if task_progress is not None:
-            context.append('{:>3d}%'.format(int(task_progress)))
-        record.context = ' - '.join(context)
+            context.append("{:>3d}%".format(int(task_progress)))
+        record.context = " - ".join(context)
 
         return super(LogFormatter, self).format(record)
 
 
 class LogStreamReporter(QtCore.QObject):
-
     emit_record = QtCore.Signal(object)
 
     def __init__(self, log, parent=None):
@@ -112,12 +107,11 @@ class LogStreamReporter(QtCore.QObject):
         self.emit_record.connect(self.report)
 
     def report(self, record):
-        sys.stdout.write(self.formatter.format(record) + '\n')
+        sys.stdout.write(self.formatter.format(record) + "\n")
         sys.stdout.flush()
 
 
 class Log(QtCore.QObject):
-
     prepare_record = QtCore.Signal(object)
     emit_record = QtCore.Signal(object)
 
@@ -139,16 +133,15 @@ class Log(QtCore.QObject):
 
 
 class TaskSignals(QtCore.QObject):
-
     status_changed = QtCore.Signal(dict)
     started = QtCore.Signal()
     finished = QtCore.Signal()
 
 
 class Task(QtCore.QRunnable):
-    '''A single chunk of work.'''
+    """A single chunk of work."""
 
-    step = 'Task'
+    step = "Task"
     execute_in_main = False
     pool = None
 
@@ -166,17 +159,17 @@ class Task(QtCore.QRunnable):
         self.step = step or self.step
         self.context = {}
 
-        self.log = Log(str(self), record_type='task')
+        self.log = Log(str(self), record_type="task")
         self.log.prepare_record.connect(self.prepare_record)
 
-        self.flow = flow or current('flow')
+        self.flow = flow or current("flow")
         if self.flow:
             self.flow.add_task(self)
 
-        self.log.debug(f'{self.step} initialized...')
+        self.log.debug(f"{self.step} initialized...")
 
     def __repr__(self):
-        return '<{}:{}>'.format(self.__class__.__name__, self.id)
+        return "<{}:{}>".format(self.__class__.__name__, self.id)
 
     def prepare_record(self, record):
         record.task = self
@@ -193,28 +186,28 @@ class Task(QtCore.QRunnable):
 
     def set_status(self, status, progress=None):
         event = {
-            'type': 'status_changed',
-            'task': self.id,
-            'step': self.step,
-            'prev_status': self.status,
-            'status': status,
-            'progress': progress or self.progress,
+            "type": "status_changed",
+            "task": self.id,
+            "step": self.step,
+            "prev_status": self.status,
+            "status": status,
+            "progress": progress or self.progress,
         }
-        self.status = event['status']
-        self.progress = event['progress']
+        self.status = event["status"]
+        self.progress = event["progress"]
         self.signals.status_changed.emit(event)
-        if event['status'] != event['prev_status']:
+        if event["status"] != event["prev_status"]:
             self.log.debug(
-                'Status changed from %s to %s.'
-                % (event['prev_status'].upper(), event['status'].upper())
+                "Status changed from %s to %s."
+                % (event["prev_status"].upper(), event["status"].upper())
             )
 
     def request(self, status):
-        self.log.debug('%s requested...' % status.upper())
+        self.log.debug("%s requested..." % status.upper())
         self.status_request = status
 
     def accept(self, status):
-        self.log.debug('%s accepted...' % status.upper())
+        self.log.debug("%s accepted..." % status.upper())
         self.set_status(status)
 
     def wait(self):
@@ -235,7 +228,7 @@ class Task(QtCore.QRunnable):
             self.set_status(const.Success)
         except Exception:
             self.error = sys.exc_info()
-            self.log.exception('Task failed to execute...')
+            self.log.exception("Task failed to execute...")
             self.set_status(const.Failed)
 
     def execute(self):
@@ -243,12 +236,11 @@ class Task(QtCore.QRunnable):
 
 
 class SyncTask(Task):
-
     execute_in_main = True
 
 
 class Flow(QtCore.QThread):
-    '''An object used to sequentially execute a list of tasks.'''
+    """An object used to sequentially execute a list of tasks."""
 
     status_changed = QtCore.Signal(str)
     step_changed = QtCore.Signal(dict)
@@ -269,32 +261,32 @@ class Flow(QtCore.QThread):
         self.pool = QtCore.QThreadPool.globalInstance()
 
         self.log_records = []
-        self.log = Log(str(self), record_type='flow')
+        self.log = Log(str(self), record_type="flow")
         self.log.prepare_record.connect(self.prepare_record)
         self.log.emit_record.connect(self.emit_record)
 
-        self.runner = runner or current('runner')
+        self.runner = runner or current("runner")
         if self.runner:
             self.runner.add_flow(self)
 
-        self.log.debug('Flow initialized...')
+        self.log.debug("Flow initialized...")
 
     def __repr__(self):
-        return '<{}:{}:{}>'.format(self.__class__.__name__, self.name, self.id)
+        return "<{}:{}:{}>".format(self.__class__.__name__, self.name, self.id)
 
     def __enter__(self):
-        push('flow', self)
+        push("flow", self)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        pop('flow', self)
+        pop("flow", self)
 
     def default_context(self):
         return {
-            'flow': self,
-            'task': None,
-            'results': {},
-            'results_by_step': {},
+            "flow": self,
+            "task": None,
+            "results": {},
+            "results_by_step": {},
         }
 
     def set_context(self, context):
@@ -323,15 +315,15 @@ class Flow(QtCore.QThread):
 
     def task_status_changed(self, event):
         # convert task percent to flow percent
-        task = self.tasks_by_id[event['task']]
+        task = self.tasks_by_id[event["task"]]
         task_index = self.tasks.index(task)
         progress_per_step = 100.0 / len(self.tasks)
         self.progress = fit100(
-            event['progress'],
+            event["progress"],
             task_index * progress_per_step,
             (task_index * progress_per_step) + progress_per_step,
         )
-        self.set_step(event['step'])
+        self.set_step(event["step"])
 
     def depends_on(self, dependencies):
         if not isinstance(dependencies, (list, tuple)):
@@ -339,7 +331,7 @@ class Flow(QtCore.QThread):
 
         for dep in dependencies:
             if not isinstance(dep, (Task, Flow)):
-                raise ValueError('Expected Task or Flow got %s' % type(dep))
+                raise ValueError("Expected Task or Flow got %s" % type(dep))
 
         for dep in dependencies:
             if dep not in self.dependencies:
@@ -348,29 +340,30 @@ class Flow(QtCore.QThread):
     def set_status(self, status):
         if status != self.status:
             self.log.debug(
-                'Status changed from %s to %s.'
-                % (self.status.upper(), status.upper())
+                "Status changed from %s to %s." % (self.status.upper(), status.upper())
             )
         self.status = status
         self.status_changed.emit(status)
 
     def set_step(self, step):
         self.step = step
-        self.step_changed.emit({
-            'flow': self.name,
-            'step': self.step,
-            'progress': self.progress,
-        })
+        self.step_changed.emit(
+            {
+                "flow": self.name,
+                "step": self.step,
+                "progress": self.progress,
+            }
+        )
 
     def get_result(self, step):
-        return self.context['results_by_step'].get(step)
+        return self.context["results_by_step"].get(step)
 
     def request(self, status):
-        self.log.debug('%s requested...' % status.upper())
+        self.log.debug("%s requested..." % status.upper())
         self.status_request = status
 
     def accept(self, status):
-        self.log.debug('%s accepted...' % status.upper())
+        self.log.debug("%s accepted..." % status.upper())
         self.set_status(status)
         self.set_step(status)
 
@@ -384,9 +377,8 @@ class Flow(QtCore.QThread):
             sleep()
 
     def await_dependencies(self):
-        self.log.debug('Waiting for requirements...')
+        self.log.debug("Waiting for requirements...")
         while True:
-
             if self.status_request == const.Cancelled:
                 return self.accept(const.Cancelled)
 
@@ -395,17 +387,17 @@ class Flow(QtCore.QThread):
                 status = dep.status
                 done.append(dep.status in const.DoneList)
                 if status == const.Failed:
-                    self.log.debug('Upstream dependency Failed: %s', dep)
+                    self.log.debug("Upstream dependency Failed: %s", dep)
                     return False
                 if status == const.Cancelled:
-                    self.log.debug('Upstream dependency Cancelled: %s', dep)
+                    self.log.debug("Upstream dependency Cancelled: %s", dep)
                     return False
                 if status == const.Revoked:
-                    self.log.debug('Upstream dependency Revoked: %s', dep)
+                    self.log.debug("Upstream dependency Revoked: %s", dep)
                     return False
 
             if all(done):
-                self.log.debug('Upstream Dependencies satisfied...')
+                self.log.debug("Upstream Dependencies satisfied...")
                 return True
 
             sleep()
@@ -423,7 +415,6 @@ class Flow(QtCore.QThread):
         self.set_status(const.Running)
 
         for task in self.tasks:
-
             # Cancelled
             if self.status_request == const.Cancelled:
                 return self.accept(const.Cancelled)
@@ -431,11 +422,11 @@ class Flow(QtCore.QThread):
             # Start next task
             self.step = task.step
 
-            self.log.debug('Setting context...')
-            self.context['task'] = task
+            self.log.debug("Setting context...")
+            self.context["task"] = task
             task.set_context(self.context)
 
-            self.log.debug('Starting...')
+            self.log.debug("Starting...")
             pool = task.pool or self.pool
             pool.start(task)
 
@@ -446,10 +437,10 @@ class Flow(QtCore.QThread):
                 self.set_step(const.Failed)
                 return
 
-            self.context['results'][task.id] = task.result
-            self.context['results_by_step'][task.step] = task.result
+            self.context["results"][task.id] = task.result
+            self.context["results_by_step"][task.step] = task.result
 
-        self.context['task'] = None
+        self.context["task"] = None
 
         # Ensure progress reaches 100% for Done flows.
         # Occasionally this may not happen if the UI becomes blocked by AE and
@@ -460,7 +451,7 @@ class Flow(QtCore.QThread):
 
 
 class Runner(QtCore.QThread):
-    '''Flow executor.'''
+    """Flow executor."""
 
     status_changed = QtCore.Signal(str)
     step_changed = QtCore.Signal(dict)
@@ -475,7 +466,7 @@ class Runner(QtCore.QThread):
         self.pool = QtCore.QThreadPool.globalInstance()
 
         self.log_records = []
-        self.log = Log(str(self), record_type='runner')
+        self.log = Log(str(self), record_type="runner")
         self.log.prepare_record.connect(self.prepare_record)
         self.log.emit_record.connect(self.emit_record)
 
@@ -483,14 +474,14 @@ class Runner(QtCore.QThread):
             for flow in flows:
                 self.add_flow(flow)
 
-        self.log.debug('Runner initialized...')
+        self.log.debug("Runner initialized...")
 
     def __enter__(self):
-        push('runner', self)
+        push("runner", self)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        pop('runner', self)
+        pop("runner", self)
 
     def emit_record(self, record):
         self.log_records.append(record)
@@ -506,7 +497,7 @@ class Runner(QtCore.QThread):
                 return flow
 
     def add_flow(self, flow, requirements=None):
-        self.log.debug('Adding flow %s', flow)
+        self.log.debug("Adding flow %s", flow)
         if requirements:
             flow.requires(requirements)
         flow.pool = self.pool
@@ -516,18 +507,17 @@ class Runner(QtCore.QThread):
         self.flows.append(flow)
 
     def request(self, status):
-        self.log.debug('%s requested...' % status.upper())
+        self.log.debug("%s requested..." % status.upper())
         self.status_request = status
 
     def accept(self, status):
-        self.log.debug('%s accepted...' % status.upper())
+        self.log.debug("%s accepted..." % status.upper())
         self.set_status(status)
 
     def set_status(self, status):
         if status != self.status:
             self.log.debug(
-                'Status changed from %s to %s.'
-                % (self.status.upper(), status.upper())
+                "Status changed from %s to %s." % (self.status.upper(), status.upper())
             )
         self.status = status
         self.status_changed.emit(status)
@@ -559,20 +549,16 @@ class Runner(QtCore.QThread):
 
 
 def generate_report(runner):
-    '''Generate a well formatted report for a Runner.'''
+    """Generate a well formatted report for a Runner."""
 
     formatters = {
-        'flow': LogFormatter(
-            '  %(flow_step)s [%(flow_progress)3d%%] %(message)s'
-        ),
-        'task': LogFormatter(
-            '    %(task_status)s [%(task_progress)3d%%] %(message)s'
-        ),
+        "flow": LogFormatter("  %(flow_step)s [%(flow_progress)3d%%] %(message)s"),
+        "task": LogFormatter("    %(task_status)s [%(task_progress)3d%%] %(message)s"),
     }
 
     report = []
     for flow in runner.flows:
-        report.append(f'{flow.name}')
+        report.append(f"{flow.name}")
         for record in flow.log_records:
             if record.exc_info:
                 # Temporarily modify record so we can nicely format the exception...
@@ -580,34 +566,34 @@ def generate_report(runner):
                 record.exc_info = record.exc_text = record.stack_info = None
                 record.message = str(einfo[1])
 
-                formatted_exc = ''.join(traceback.format_exception(*einfo))
+                formatted_exc = "".join(traceback.format_exception(*einfo))
                 report.append(formatters[record.type].format(record))
-                report.append(f'\n{formatted_exc}\n')
+                report.append(f"\n{formatted_exc}\n")
 
                 # Restore record
                 record.exc_info, record.exc_text, record.stack_info = einfo, etext, stk
             else:
                 report.append(formatters[record.type].format(record))
-    return '\n'.join(report)
+    return "\n".join(report)
 
 
 def generate_html_report(runner):
-    '''Generate a well formatted html report for a Runner.'''
+    """Generate a well formatted html report for a Runner."""
 
     formatters = {
-        'flow': LogFormatter(
+        "flow": LogFormatter(
             '<pre style="margin: 0px;">  %(flow_step)s [%(flow_progress)3d%%] %(message)s</pre>'
         ),
-        'task': LogFormatter(
+        "task": LogFormatter(
             '<pre style="margin: 0px;">   %(branch)s %(task_status)s [%(task_progress)3d%%] %(message)s</pre>'
         ),
     }
 
     def format_record(record):
         formatter = formatters[record.type]
-        record.branch = '├'
-        if record.type == 'task' and record.task_status in const.DoneList:
-            record.branch = '└'
+        record.branch = "├"
+        if record.type == "task" and record.task_status in const.DoneList:
+            record.branch = "└"
         lines = []
         # Apply base formatting
         if record.exc_info:
@@ -616,7 +602,7 @@ def generate_html_report(runner):
             record.exc_info = record.exc_text = record.stack_info = None
             record.message = str(einfo[1])
 
-            formatted_exc = ''.join(traceback.format_exception(*einfo))
+            formatted_exc = "".join(traceback.format_exception(*einfo))
             lines.append(formatter.format(record))
             lines.append(f'<pre style="color: #EB5757;">{formatted_exc}</pre>')
 
@@ -626,14 +612,14 @@ def generate_html_report(runner):
             lines.append(formatters[record.type].format(record))
 
         # Apply color and emphasis to status labels
-        if record.type == 'flow':
+        if record.type == "flow":
             pattern = record.flow_step
             status = pattern.split()[0].lower()
-            color = '#CFCFCF'
+            color = "#CFCFCF"
         else:
             pattern = record.task_status
             status = pattern.split()[0].lower()
-            color = '#AFAFAF'
+            color = "#AFAFAF"
         repl = f'<em style="color: {color};">{pattern}</em>'
         for i, line in enumerate(lines):
             lines[i] = re.sub(pattern, repl, line)
@@ -642,38 +628,40 @@ def generate_html_report(runner):
 
     report = ['<pre style="line-height:0%;">  </pre>']
     for flow in runner.flows:
-        report.append(f'<pre style="font-family: Roboto; font-size: 14px;color: #DDDDDD;">  {flow.name}</pre>')
+        report.append(
+            f'<pre style="font-family: Roboto; font-size: 14px;color: #DDDDDD;">  {flow.name}</pre>'
+        )
         for record in flow.log_records:
             report.extend(format_record(record))
 
-    return '\n'.join(report)
+    return "\n".join(report)
 
 
 def clamp(value, mn, mx):
-    '''Clamp <value> between <mn> and <mx>.'''
+    """Clamp <value> between <mn> and <mx>."""
 
     return min(max(value, mn), mx)
 
 
 def fit(value, omin, omax, nmin, nmax):
-    '''Remap <value> between <omin> and <omax> to <nmin> and <nmax>'''
+    """Remap <value> between <omin> and <omax> to <nmin> and <nmax>"""
 
     nvalue = (((value - omin) * (nmax - nmin)) / (omax - omin)) + nmin
     return clamp(nvalue, nmin, nmax)
 
 
 def fit100(value, mn, mx):
-    '''Fit <value> between 0 and 100 to <mn> and <mx>.'''
+    """Fit <value> between 0 and 100 to <mn> and <mx>."""
 
     return fit(value, 0, 100, mn, mx)
 
 
 class FunctionEvent(QtCore.QEvent):
-    '''QEvent wrapping a function and arguments.
+    """QEvent wrapping a function and arguments.
 
     Has a result queue that can be used to await a result of the Events acceptance and
     execution.
-    '''
+    """
 
     _type = QtCore.QEvent.Type(QtCore.QEvent.registerEventType())
 
@@ -687,11 +675,11 @@ class FunctionEvent(QtCore.QEvent):
 
 
 class FunctionCaller(QtCore.QObject):
-    '''QObject whose sole purpose is handling FunctionEvents.
+    """QObject whose sole purpose is handling FunctionEvents.
 
     Calls a FunctionEvent's function and puts the result and exc_info on the
     FunctionEvent's result queue.
-    '''
+    """
 
     event_processed = QtCore.Signal()
 
@@ -713,12 +701,13 @@ function_caller = FunctionCaller()
 
 
 def call_in_main(fn, *args, **kwargs):
-    '''Calls a function in the MainThread and returns the result.'''
+    """Calls a function in the MainThread and returns the result."""
 
     from sgtk.platform import current_engine
+
     engine = current_engine()
 
-    if threading.current_thread().name == 'MainThread':
+    if threading.current_thread().name == "MainThread":
         return fn(*args, **kwargs)
 
     # Post event for function_caller to execute in main thread

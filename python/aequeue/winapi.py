@@ -39,23 +39,24 @@ FindWindowEx = ctypes.windll.user32.FindWindowExW
 SendMessage = ctypes.windll.user32.SendMessageW
 
 
-Window = namedtuple('Window', 'title cls hwnd pid')
-Child = namedtuple('Child', 'title cls hwnd parent pid')
+Window = namedtuple("Window", "title cls hwnd pid")
+Child = namedtuple("Child", "title cls hwnd parent pid")
 
 
 def enumerate_windows(callback):
-    '''Execute a function against all Window's hwnd.'''
+    """Execute a function against all Window's hwnd."""
 
     return EnumWindows(EnumWindowsProc(callback), 0)
 
 
 def get_windows():
-    '''Returns a list of Windows for all Windows.
+    """Returns a list of Windows for all Windows.
 
     A Window has two attributes, title, and hwnd.
-    '''
+    """
 
     results = []
+
     def record_hwnds(hwnd, lParam):
         window = Window(
             title=get_window_title(hwnd),
@@ -65,19 +66,20 @@ def get_windows():
         )
         results.append(window)
         return True
+
     enumerate_windows(record_hwnds)
     return results
 
 
 def get_pid(hwnd):
-    '''Get a window's pid.'''
+    """Get a window's pid."""
 
     pid = ctypes.wintypes.DWORD()
     return GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
 
 
 def get_window_title(hwnd):
-    '''Get a window's title.'''
+    """Get a window's title."""
 
     length = GetWindowTextLength(hwnd)
     buff = ctypes.create_unicode_buffer(length + 1)
@@ -86,7 +88,7 @@ def get_window_title(hwnd):
 
 
 def get_window_class(hwnd):
-    '''Get a window's class name.'''
+    """Get a window's class name."""
 
     length = 1024
     buff = ctypes.create_unicode_buffer(length)
@@ -95,7 +97,7 @@ def get_window_class(hwnd):
 
 
 def find_window_by_title(pattern):
-    '''Get the first Window whose title matches pattern.'''
+    """Get the first Window whose title matches pattern."""
 
     for window in get_windows():
         if fnmatch.fnmatch(window.title, pattern):
@@ -103,7 +105,7 @@ def find_window_by_title(pattern):
 
 
 def find_window_by_hwnd(hwnd):
-    '''Return a Window including it's title from an hwnd.'''
+    """Return a Window including it's title from an hwnd."""
 
     length = GetWindowTextLength(hwnd)
     buff = ctypes.create_unicode_buffer(length + 1)
@@ -112,16 +114,17 @@ def find_window_by_hwnd(hwnd):
 
 
 def enumerate_children(hwnd, callback):
-    '''Execute a function against all Window children.'''
+    """Execute a function against all Window children."""
 
     return EnumChildWindows(hwnd, EnumChildProc(callback), 0)
 
 
 def get_children(phwnd):
-    '''Return a list of children of the specified Window.'''
+    """Return a list of children of the specified Window."""
 
     ppid = get_pid(phwnd)
     results = []
+
     def record_hwnds(hwnd, lParam):
         child = Child(
             title=get_window_title(hwnd),
@@ -132,12 +135,13 @@ def get_children(phwnd):
         )
         results.append(child)
         return True
+
     enumerate_children(phwnd, record_hwnds)
     return results
 
 
 def find_child(hwnd, title=None, cls=None):
-    '''Find a child by title and cls.'''
+    """Find a child by title and cls."""
 
     for child in get_children(hwnd):
         if title and child.title != title:
@@ -148,22 +152,21 @@ def find_child(hwnd, title=None, cls=None):
 
 
 def click(hwnd):
-    '''Send a click message to the specified hwnd.'''
+    """Send a click message to the specified hwnd."""
 
     SendMessage(hwnd, BM_CLICK, 0, 0)
 
 
-def close_popup(window_title, button_title=None, button_cls='Button', pid=None):
-    '''Attempts to local a popup window and close it!
+def close_popup(window_title, button_title=None, button_cls="Button", pid=None):
+    """Attempts to local a popup window and close it!
 
     Arguments:
         window_title (str): Name of the window to close.
         button_title (str): Name of the child button.
         button_cls (str): Name of the child button class.
-    '''
+    """
 
     for window in get_windows():
-
         if pid and window.pid != pid:
             continue
 
@@ -175,17 +178,16 @@ def close_popup(window_title, button_title=None, button_cls='Button', pid=None):
     return False
 
 
-def close_popups(window_title, button_title=None, button_cls='Button', pid=None):
-    '''Attempts to local a popup window and close it!
+def close_popups(window_title, button_title=None, button_cls="Button", pid=None):
+    """Attempts to local a popup window and close it!
 
     Arguments:
         window_title (str): Name of the window to close.
         button_title (str): Name of the child button.
         button_cls (str): Name of the child button class.
-    '''
+    """
 
     for window in get_windows():
-
         if pid and window.pid != pid:
             continue
 
@@ -195,7 +197,7 @@ def close_popups(window_title, button_title=None, button_cls='Button', pid=None)
 
 
 def set_qt_parent(qt_hwnd, parent_hwnd):
-    '''Parent a QWidget to another Window using hwnd's.'''
+    """Parent a QWidget to another Window using hwnd's."""
 
     exstyle = GetWindowLong(qt_hwnd, GWL_EXSTYLE)
     SetWindowLong(
@@ -208,7 +210,7 @@ def set_qt_parent(qt_hwnd, parent_hwnd):
 
 
 class ProxyParent(QtWidgets.QWidget):
-    '''A convenience class for creating a QWidget proxy parented to another processes
+    """A convenience class for creating a QWidget proxy parented to another processes
     Window.
 
     Once created, a ProxyParent can be used as the primary parent for the rest of your
@@ -219,7 +221,7 @@ class ProxyParent(QtWidgets.QWidget):
         dialog = QtWidgets.QDialog(parent=afx)
         dialog.setWindowTitle('AFX Child Dialog!')
         dialog.exec()
-    '''
+    """
 
     def __init__(self, parent_title_or_hwind=None):
         super().__init__()

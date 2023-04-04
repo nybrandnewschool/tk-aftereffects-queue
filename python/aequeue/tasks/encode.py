@@ -11,8 +11,7 @@ class EncodeError(Exception):
 
 
 class EncodeMP4(Task):
-
-    step = const.Encoding + ' MP4'
+    step = const.Encoding + " MP4"
 
     def __init__(self, src_file, dst_file, quality, framerate, *args, **kwargs):
         self.src_file = src_file
@@ -22,38 +21,38 @@ class EncodeMP4(Task):
         super(EncodeMP4, self).__init__(*args, **kwargs)
 
     def on_start(self, proc):
-        self.log.debug('Encoding MP4 [%s]', self.quality)
+        self.log.debug("Encoding MP4 [%s]", self.quality)
         self.log.debug(" ".join(proc.args))
 
     def on_frame(self, proc):
         self.set_status(const.Running, proc.progress)
-        self.log.debug(f'Frame {proc.frame:>4d} of {proc.num_frames + 1:>4d}.')
+        self.log.debug(f"Frame {proc.frame:>4d} of {proc.num_frames + 1:>4d}.")
 
     def on_error(self, proc):
-        raise EncodeError('Failed to encode mp4...\n' + proc.error)
+        raise EncodeError("Failed to encode mp4...\n" + proc.error)
 
     def on_done(self, proc):
-        self.log.debug('Finished encoding mp4!')
+        self.log.debug("Finished encoding mp4!")
 
     def execute(self):
-        app = self.context['app']
+        app = self.context["app"]
 
         src_file = self.src_file
         src_file_info = app.engine.get_ae_path_info(src_file)
 
-        if self.quality == 'High Quality':
-            crf = '18'
-            preset = 'veryslow'
-        elif self.quality == 'Medium Quality':
-            crf = '22'
-            preset = 'medium'
+        if self.quality == "High Quality":
+            crf = "18"
+            preset = "veryslow"
+        elif self.quality == "Medium Quality":
+            crf = "22"
+            preset = "medium"
         else:
-            crf = '26'
-            preset = 'veryfast'
+            crf = "26"
+            preset = "veryfast"
 
-        if src_file_info['is_sequence']:
-            padding = '%0{}d'.format(src_file_info['padding'])
-            src_file = src_file.replace(src_file_info['padding_str'], padding)
+        if src_file_info["is_sequence"]:
+            padding = "%0{}d".format(src_file_info["padding"])
+            src_file = src_file.replace(src_file_info["padding_str"], padding)
             proc = ffmpeg_lib.encode_sequence(
                 in_file=src_file,
                 out_file=self.dst_file,
@@ -63,13 +62,19 @@ class EncodeMP4(Task):
             )
         else:
             proc = ffmpeg_lib.encode(
-                '-y',
-                '-i', src_file,
-                '-acodec', 'aac',
-                '-vcodec', 'libx264',
-                '-pix_fmt', 'yuv420p',
-                '-crf', crf,
-                '-preset', preset,
+                "-y",
+                "-i",
+                src_file,
+                "-acodec",
+                "aac",
+                "-vcodec",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-crf",
+                crf,
+                "-preset",
+                preset,
                 self.dst_file,
             )
         ffmpeg_lib.watch(
@@ -83,8 +88,7 @@ class EncodeMP4(Task):
 
 
 class EncodeGIF(Task):
-
-    step = const.Encoding + ' GIF'
+    step = const.Encoding + " GIF"
 
     def __init__(self, src_file, dst_file, quality, framerate, *args, **kwargs):
         self.src_file = src_file
@@ -94,28 +98,28 @@ class EncodeGIF(Task):
         super(EncodeGIF, self).__init__(*args, **kwargs)
 
     def on_start(self, proc):
-        self.log.debug('Encoding GIF [%s]', self.quality)
+        self.log.debug("Encoding GIF [%s]", self.quality)
         self.log.debug(" ".join(proc.args))
 
     def on_frame(self, proc):
         self.set_status(const.Running, proc.progress)
-        self.log.debug(f'Frame {proc.frame:>4d} of {proc.num_frames + 1:>4d}.')
+        self.log.debug(f"Frame {proc.frame:>4d} of {proc.num_frames + 1:>4d}.")
 
     def on_error(self, proc):
         self.set_status(const.Failed, proc.progress)
-        raise EncodeError('Failed to encode mp4...\n' + proc.error)
+        raise EncodeError("Failed to encode mp4...\n" + proc.error)
 
     def on_done(self, proc):
-        self.log.debug('Finished encoding mp4!')
+        self.log.debug("Finished encoding mp4!")
 
     def execute(self):
-        app = self.context['app']
+        app = self.context["app"]
 
         src_file = self.src_file
         src_file_info = app.engine.get_ae_path_info(src_file)
-        if src_file_info['is_sequence']:
-            padding = '%0{}d'.format(src_file_info['padding'])
-            src_file = src_file.replace(src_file_info['padding_str'], padding)
+        if src_file_info["is_sequence"]:
+            padding = "%0{}d".format(src_file_info["padding"])
+            src_file = src_file.replace(src_file_info["padding_str"], padding)
 
         # Prepare cli arguments
         width = None
@@ -124,28 +128,32 @@ class EncodeGIF(Task):
             width = resolution[0]
         if width:
             max_width = min(width, 2160)
-            if self.quality == 'Low Quality':
+            if self.quality == "Low Quality":
                 width = int(max_width * 0.25)
-            elif self.quality == 'Medium Quality':
+            elif self.quality == "Medium Quality":
                 width = int(max_width * 0.5)
             else:
                 width = max_width
 
         fps = self.framerate
-        scale = ('', f'scale={width}:-1:flags=lanczos,')[bool(width)]
+        scale = ("", f"scale={width}:-1:flags=lanczos,")[bool(width)]
         colors = 128
-        dither = ''  # 'dither=bayer:bayer_scale=3:'
+        dither = ""  # 'dither=bayer:bayer_scale=3:'
         filters = [
-            f'[0:v] fps={fps},{scale}split [a][b]',
-            f'[a] palettegen=max_colors={colors}:stats_mode=diff [p]',
-            f'[b][p] paletteuse={dither}diff_mode=rectangle',
+            f"[0:v] fps={fps},{scale}split [a][b]",
+            f"[a] palettegen=max_colors={colors}:stats_mode=diff [p]",
+            f"[b][p] paletteuse={dither}diff_mode=rectangle",
         ]
         proc = ffmpeg_lib.encode(
-            '-i', src_file,
-            '-filter_complex', ';'.join(filters),
-            '-loop', '0',
-            '-gifflags', '+transdiff',
-            '-y',
+            "-i",
+            src_file,
+            "-filter_complex",
+            ";".join(filters),
+            "-loop",
+            "0",
+            "-gifflags",
+            "+transdiff",
+            "-y",
             self.dst_file,
         )
         ffmpeg_lib.watch(
