@@ -1,9 +1,9 @@
 from math import floor
 from random import uniform
 
-from ..vendor.Qt import QtCore
+from ..vendor.qtpy import QtCore
 
-from .. import const, resources
+from .. import const
 from ..widgets import Window
 from ..options import RenderOptions
 

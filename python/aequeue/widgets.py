@@ -1,12 +1,10 @@
-import re
-import sys
 import textwrap
 from multiprocessing import cpu_count
 from string import Template
 from weakref import WeakValueDictionary
 
 from . import const, resources
-from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .vendor.qtpy import QtCore, QtGui, QtWidgets
 
 
 def lerp(a, b, t):

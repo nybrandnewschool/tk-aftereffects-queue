@@ -1,4 +1,4 @@
-from ..vendor.Qt import QtCore
+from ..vendor.qtpy import QtCore
 
 from ..widgets import Window
 

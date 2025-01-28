@@ -45,3 +45,4 @@ tmp/
 
 # Video files
 *.avi
+.venv

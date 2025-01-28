@@ -1,11 +1,10 @@
-import sys
 import ctypes
 import ctypes.wintypes
 import fnmatch
 import uuid
 from collections import namedtuple
 
-from .vendor.Qt import QtCore, QtWidgets
+from .vendor.qtpy import QtWidgets
 
 GWL_EXSTYLE = -20
 WS_EX_NOPARENTNOTIFY = 0x00000004

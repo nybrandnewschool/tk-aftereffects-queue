@@ -1,10 +1,8 @@
 import os
-import sys
 
-from .. import const, paths
-from ..render import AERenderProcess, AERenderSubprocess
-from ..vendor.Qt import QtCore, QtWidgets
-from .core import Task, SyncTask, call_in_main, fit
+from .. import const
+from ..render import AERenderSubprocess
+from .core import Task, SyncTask, fit
 
 
 class AERenderFailed(Exception):
