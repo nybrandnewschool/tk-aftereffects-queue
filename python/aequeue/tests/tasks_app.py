@@ -1,4 +1,4 @@
-from ..vendor.Qt import QtWidgets, QtCore
+from ..vendor.qtpy import QtWidgets, QtCore
 
 from .. import const, resources
 from ..options import RenderOptions

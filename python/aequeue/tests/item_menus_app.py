@@ -2,7 +2,7 @@ from random import uniform
 
 from .. import const, resources
 from ..widgets import Window
-from ..vendor.Qt import QtCore
+from ..vendor.qtpy import QtCore
 
 
 def toast_action(ui, item, action):

@@ -5,10 +5,10 @@ import threading
 import traceback
 import uuid
 from collections import defaultdict, deque
-from queue import Queue, Empty
+from queue import Queue
 
 from .. import const
-from ..vendor.Qt import QtCore, QtWidgets
+from ..vendor.qtpy import QtCore, QtWidgets
 
 
 __all__ = [

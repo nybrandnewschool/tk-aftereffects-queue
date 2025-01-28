@@ -9,7 +9,7 @@ def application(name):
     def wrap_fn(fn):
         @wraps(fn)
         def call_fn(*args, **kwargs):
-            from ..vendor.Qt import QtWidgets
+            from ..vendor.qtpy import QtWidgets
 
             if QtWidgets.QApplication.instance():
                 return fn(*args, **kwargs)

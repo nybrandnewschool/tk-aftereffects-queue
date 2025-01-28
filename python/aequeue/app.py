@@ -16,17 +16,15 @@ from .tasks.core import (
     Flow,
     LogFormatter,
     Runner,
-    call_in_main,
     generate_html_report,
     generate_report,
 )
 from .tasks.delete import Delete
 from .tasks.encode import EncodeGIF, EncodeMP4
-from .tasks.generic import ErrorTask
 from .tasks.move import Move
 from .tasks.sgpublish import SGPublish
 from .tasks.sgupload import SGUploadVersion
-from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .vendor.qtpy import QtCore, QtGui, QtWidgets
 from .widgets import Menu, Window
 
 

@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 
-from .vendor.Qt import QtCore
+from .vendor.qtpy import QtCore
 from . import const
 
 

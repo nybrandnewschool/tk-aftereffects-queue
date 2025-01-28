@@ -1,10 +1,7 @@
-from math import floor
-from random import uniform
 import xml.etree.ElementTree as xmlElementTree
 
-from ..vendor.Qt import QtWidgets, QtCore
+from ..vendor.qtpy import QtCore
 
-from .. import const, resources
 from ..widgets import Window
 
 
