@@ -402,3 +402,71 @@ class AfterEffectsEngineWrapper(object):
     def render_queue_item(self, rq_item):
         with self.suppress_dialogs():
             return self._engine.render_queue_item(rq_item)
+
+    def render_queue_item_async(self, rq_item):
+        with self.suppress_dialogs():
+            return self._render_queue_item_async(rq_item)
+
+    def _render_queue_item_async(self, queue_item):
+        """
+        renders a given queue_item, by disabling all other queued items
+        and only enabling the given item. After rendering the state of the
+        render-queue is reverted.
+
+        :param queue_item: The render queue item to be rendered
+        :type queue_item: `adobe.RenderQueueItemObject`_
+        :returns: Indicating successful rendering or not
+        :rtype: bool
+        """
+
+        # save the queue state for all unrendered items
+        queue_item_state_cache = [(queue_item, queue_item.render)]
+        for item in self.iter_collection(self.adobe.app.project.renderQueue.items):
+            # one cannot change the status on
+            if item.status != self.adobe.RQItemStatus.QUEUED:
+                continue
+            queue_item_state_cache.append((item, item.render))
+            item.render = False
+
+        success = False
+        queue_item.render = True
+        self.logger.debug("Start rendering..")
+        try:
+            self.adobe.app.project.renderQueue.renderAsync()
+
+            # Wait for render queue to achieve finished state
+            while True:
+                rendering_states = [
+                    self.adobe.RQItemStatus.RENDERING,
+                    self.adobe.RQItemStatus.WILL_CONTINUE,
+                ]
+                if queue_item.status not in rendering_states:
+                    break
+
+                # Process UI events while we wait for render to finish.
+                self.adobe.wait(single_loop=True, process_events=True)
+
+        except Exception as e:
+            # This catches errors thrown during the AfterEffects Render process.
+            # Which may return various different errors. This situation never
+            # occured during development.
+            self.logger.error(
+                ("Skipping item due to an error " "while rendering: {}").format(e)
+            )
+        finally:
+            acceptable_states = [
+                self.adobe.RQItemStatus.DONE,
+                self.adobe.RQItemStatus.ERR_STOPPED,
+                self.adobe.RQItemStatus.RENDERING,
+            ]
+            # reverting the original queued state for all
+            # unprocessed items
+            while queue_item_state_cache:
+                item, status = queue_item_state_cache.pop(0)
+                if item.status not in acceptable_states:
+                    item.render = status
+
+        # we check for success if the render queue item status
+        # has changed to DONE
+        success = queue_item.status == self.adobe.RQItemStatus.DONE
+        return success
