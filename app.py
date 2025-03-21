@@ -88,8 +88,14 @@ class AEQueueApplication(sgtk.platform.Application):
     def get_default_mp4_quality(self):
         return self.get_setting("default_mp4_quality")
 
+    def get_default_mp4_resolution(self):
+        return self.get_setting("default_mp4_resolution")
+
     def get_default_gif_quality(self):
         return self.get_setting("default_gif_quality")
+
+    def get_default_gif_resolution(self):
+        return self.get_setting("default_gif_resolution")
 
     def get_default_keep_original(self):
         return True
@@ -187,8 +193,16 @@ class AEQueueApplication(sgtk.platform.Application):
         else:
             current_task_name = None
 
+        workfiles_app = self.engine.apps.get("tk-multi-workfiles2")
+        template_name = workfiles_app.settings.get("template_work")
+        template = self.engine.sgtk.templates[template_name]
+        fields = template.get_fields(self.engine.project_path)
+
         try:
-            project_ctx = self.engine.sgtk.context_from_path(self.engine.project_path)
+            project_ctx = self.engine.sgtk.context_from_path(
+                self.engine.project_path,
+                current_ctx,
+            )
         except Exception:
             return False, "Can't determine Context. Please use ShotGrid Open/Save..."
 
@@ -213,12 +227,15 @@ class AEQueueApplication(sgtk.platform.Application):
 
             project_ctx = self.engine.sgtk.context_from_entity("Task", task["id"])
 
-        should_change_context = (
-            current_ctx.project != project_ctx.project
-            or current_ctx.entity != project_ctx.entity
-            or current_ctx.step != project_ctx.step
-            or current_ctx.task != project_ctx.task
-        )
+        pctx = project_ctx.to_dict()
+        cctx = current_ctx.to_dict()
+        should_change_context = False
+        for field in ["project", "entity", "step", "task"]:
+            current_id = pctx.get(field, {}).get("id")
+            other_id = cctx.get(field, {}).get("id")
+            if current_id != other_id and other_id is not None:
+                should_change_context = True
+
         if should_change_context:
             optimal_ctx = project_ctx
         else:

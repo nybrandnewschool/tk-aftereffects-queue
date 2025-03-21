@@ -111,17 +111,21 @@ class Application(QtCore.QObject):
             if default_module:
                 self.ui.options.module.setCurrentText(default_module)
 
-            default_settings = self.tk_app.get_default_render_settings(
-                existing_settings
-            )
+            default_settings = self.tk_app.get_default_render_settings(existing_settings)
             if default_settings:
                 self.ui.options.settings.setCurrentText(default_settings)
 
             default_mp4_quality = self.tk_app.get_default_mp4_quality()
             self.ui.options.mp4_quality.setCurrentText(default_mp4_quality)
 
+            default_mp4_resolution = self.tk_app.get_default_mp4_resolution()
+            self.ui.options.mp4_resolution.setCurrentText(default_mp4_resolution)
+
             default_gif_quality = self.tk_app.get_default_gif_quality()
             self.ui.options.gif_quality.setCurrentText(default_gif_quality)
+
+            default_gif_resolution = self.tk_app.get_default_gif_resolution()
+            self.ui.options.gif_resolution.setCurrentText(default_gif_resolution)
 
             default_keep_original = self.tk_app.get_default_keep_original()
             self.ui.options.keep_original.setChecked(default_keep_original)
@@ -129,9 +133,9 @@ class Application(QtCore.QObject):
             # Update flag so we don't update them next time we load options.
             self._defaults_loaded = True
         else:
-            if stash["module"]:
+            if stash.get("module"):
                 self.ui.options.module.setCurrentText(stash["module"])
-            if stash["settings"]:
+            if stash.get("settings"):
                 self.ui.options.settings.setCurrentText(stash["settings"])
 
     def reset_queue(self):
@@ -365,6 +369,7 @@ class Application(QtCore.QObject):
                     src_file=output_path,
                     dst_file=mp4_path,
                     quality=options.mp4_quality,
+                    resolution=options.mp4_resolution,
                     framerate=framerate,
                 )
 
@@ -375,6 +380,7 @@ class Application(QtCore.QObject):
                     src_file=output_path,
                     dst_file=gif_path,
                     quality=options.gif_quality,
+                    resolution=options.gif_resolution,
                     framerate=framerate,
                 )
 

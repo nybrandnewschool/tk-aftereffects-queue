@@ -13,10 +13,11 @@ class EncodeError(Exception):
 class EncodeMP4(Task):
     step = const.Encoding + " MP4"
 
-    def __init__(self, src_file, dst_file, quality, framerate, *args, **kwargs):
+    def __init__(self, src_file, dst_file, quality, resolution, framerate, *args, **kwargs):
         self.src_file = src_file
         self.dst_file = dst_file
         self.quality = quality
+        self.resolution = resolution
         self.framerate = framerate
         super(EncodeMP4, self).__init__(*args, **kwargs)
 
@@ -50,37 +51,47 @@ class EncodeMP4(Task):
             crf = "26"
             preset = "veryfast"
 
+        scale_filter = get_scale_filter(self.resolution)
+        if scale_filter:
+            scale = ("-vf", scale_filter)
+        else:
+            scale = ("",)
+
         if src_file_info["is_sequence"]:
             padding = "%0{}d".format(src_file_info["padding"])
             src_file = src_file.replace(src_file_info["padding_str"], padding)
-            proc = ffmpeg_lib.encode_sequence(
-                in_file=src_file,
-                out_file=self.dst_file,
-                framerate=self.framerate,
-                crf=crf,
-                preset=preset,
+            start_number = ffmpeg_lib.get_frame_range(src_file)[0]
+            proc = ffmpeg_lib.encode(
+                '-y',
+                '-start_number', str(start_number),
+                '-r', str(self.framerate),
+                '-f', 'image2',
+                '-i', src_file,
+                '-vcodec', 'libx264',
+                '-pix_fmt', 'yuv420p',
+                *scale,
+                "-profile:v", "main",
+                "-g", "1",
+                "-vendor", "apl0",
+                "-tune", "stillimage",
+                '-crf', crf,
+                '-preset', preset,
+                self.dst_file
             )
         else:
             proc = ffmpeg_lib.encode(
                 "-y",
-                "-i",
-                src_file,
-                "-acodec",
-                "aac",
-                "-vcodec",
-                "libx264",
-                "-pix_fmt",
-                "yuv420p",
-                "-profile:v",
-                "main",
-                "-vendor",
-                "apl0",
-                "-tune",
-                "stillimage",
-                "-crf",
-                crf,
-                "-preset",
-                preset,
+                "-i", src_file,
+                "-acodec", "aac",
+                "-vcodec", "libx264",
+                "-pix_fmt", "yuv420p",
+                *scale,
+                "-profile:v", "main",
+                "-g", "1",
+                "-vendor", "apl0",
+                "-tune", "stillimage",
+                "-crf", crf,
+                "-preset", preset,
                 self.dst_file,
             )
         ffmpeg_lib.watch(
@@ -96,10 +107,11 @@ class EncodeMP4(Task):
 class EncodeGIF(Task):
     step = const.Encoding + " GIF"
 
-    def __init__(self, src_file, dst_file, quality, framerate, *args, **kwargs):
+    def __init__(self, src_file, dst_file, quality, resolution, framerate, *args, **kwargs):
         self.src_file = src_file
         self.dst_file = dst_file
         self.quality = quality
+        self.resolution = resolution
         self.framerate = framerate
         super(EncodeGIF, self).__init__(*args, **kwargs)
 
@@ -128,22 +140,10 @@ class EncodeGIF(Task):
             src_file = src_file.replace(src_file_info["padding_str"], padding)
 
         # Prepare cli arguments
-        width = None
-        resolution = ffmpeg_lib.get_resolution(src_file)
-        if resolution:
-            width = resolution[0]
-        if width:
-            max_width = min(width, 2160)
-            if self.quality == "Low Quality":
-                width = int(max_width * 0.25)
-            elif self.quality == "Medium Quality":
-                width = int(max_width * 0.5)
-            else:
-                width = max_width
-
         fps = self.framerate
-        scale = ("", f"scale={width}:-1:flags=lanczos,")[bool(width)]
-        colors = 128
+        scale_filter = get_scale_filter(self.resolution)
+        scale = ("", f"{scale_filter}:flags=lanczos,")[bool(scale_filter)]
+        colors = get_gif_color_depth(self.quality)
         dither = ""  # 'dither=bayer:bayer_scale=3:'
         filters = [
             f"[0:v] fps={fps},{scale}split [a][b]",
@@ -151,14 +151,11 @@ class EncodeGIF(Task):
             f"[b][p] paletteuse={dither}diff_mode=rectangle",
         ]
         proc = ffmpeg_lib.encode(
-            "-i",
-            src_file,
-            "-filter_complex",
-            ";".join(filters),
-            "-loop",
-            "0",
-            "-gifflags",
-            "+transdiff",
+            "-y",
+            "-i", src_file,
+            "-filter_complex", ";".join(filters),
+            "-loop", "0",
+            "-gifflags", "+transdiff",
             "-y",
             self.dst_file,
         )
@@ -170,3 +167,24 @@ class EncodeGIF(Task):
             on_done=self.on_done,
         )
         return self.dst_file
+
+
+def get_gif_color_depth(quality="High Quality"):
+    return {
+        "High Quality": 256,
+        "Medium Quality": 128,
+        "Low Quality": 64,
+        "Min Quality": 32,
+    }[quality]
+
+
+def get_scale_filter(resolution="Full"):
+    if resolution == "Full":
+        return ""
+    if resolution == "Half":
+        return "scale='iw/2:ih/2'"
+    if resolution == "Quarter":
+        return "scale='iw/4:ih/4'"
+
+    rint = int(resolution)
+    return f"scale='if(gte(iw,ih),{rint},-2)':'if(gte(iw,ih),-2,{rint})'"

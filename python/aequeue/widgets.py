@@ -379,6 +379,51 @@ class ComboBox(QtWidgets.QComboBox):
         QListView::item:selected {
             background: $on_surface;
         }
+        QScrollBar:vertical {
+            background: $dark;
+            width: 10px;
+            margin: 0;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 1px;
+            padding-right: 4px;
+        }
+
+        QScrollBar::handle:vertical {
+            background: $surface_highlight;
+        }
+
+        QScrollBar::handle:vertical:hover {
+            background: $on_surface;
+        }
+
+        QScrollBar::add-line:vertical {
+            background: transparent;
+            width: 1px;
+            left: 4px;
+            top: 20px;
+            bottom: 20px;
+            subcontrol-origin: paddding;
+            subcontrol-position: top;
+        }
+
+        QScrollBar::sub-line:vertical {
+            background: transparent;
+            width: 1px;
+            left: 4px;
+            top: 20px;
+            bottom: 20px;
+            subcontrol-origin: padding;
+            subcontrol-position: bottom;
+        }
+
+        QScrollBar::top-arrow:vertical, QScrollBar::bottom-arrow:vertical {
+            background: transparent;
+        }
+
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: transparent;
+        }
     """
     )
 
@@ -886,7 +931,7 @@ class RenderQueue(QtWidgets.QListWidget):
         super(RenderQueue, self).__init__(parent)
         self.items = WeakValueDictionary()
 
-        self.setSizeAdjustPolicy(self.AdjustToContents)
+        self.setSizeAdjustPolicy(QtWidgets.QListView.AdjustToContents)
         self.setStyleSheet(self.css)
         self.verticalScrollBar().setStyle(QtWidgets.QCommonStyle())
         self.setAcceptDrops(True)
@@ -1029,7 +1074,7 @@ class LogReport(QtWidgets.QTextEdit):
         self.setStyleSheet(self.css)
         self.verticalScrollBar().setStyle(QtWidgets.QCommonStyle())
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setLineWrapMode(self.NoWrap)
+        self.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
         self.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
 
 
@@ -1083,31 +1128,59 @@ class Options(QtWidgets.QWidget):
 
         self.mp4 = CheckBox()
         self.mp4_quality = ComboBox()
-        self.mp4_quality.addItems(["High Quality", "Medium Quality", "Low Quality"])
+        self.mp4_quality.addItems(const.DefaultOptions["Quality"])
         self.mp4_quality.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Minimum,
         )
+        self.mp4_quality.setToolTip(
+            "High Quality: -crf 26 -preset veryslow\n"
+            "Medium Quality: -crf 22 -preset medium\n"
+            "Low Quality: -crf 18 -preset veryfast\n"
+            "Min Quality: -crf 9 -preset veryfast"
+        )
+        self.mp4_resolution = ComboBox()
+        self.mp4_resolution.addItems(const.DefaultOptions["Resolution"])
+        self.mp4_resolution.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Minimum,
+        )
         self.mp4.stateChanged.connect(self.mp4_quality.setEnabled)
+        self.mp4.stateChanged.connect(self.mp4_resolution.setEnabled)
         self.mp4_layout = QtWidgets.QHBoxLayout()
         self.mp4_layout.setSpacing(12)
         self.mp4_layout.setStretch(1, 1)
         self.mp4_layout.addWidget(self.mp4)
         self.mp4_layout.addWidget(self.mp4_quality)
+        self.mp4_layout.addWidget(self.mp4_resolution)
 
         self.gif = CheckBox()
         self.gif_quality = ComboBox()
-        self.gif_quality.addItems(["High Quality", "Medium Quality", "Low Quality"])
+        self.gif_quality.addItems(const.DefaultOptions["Quality"])
         self.gif_quality.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Minimum,
         )
+        self.gif_quality.setToolTip(
+            "High Quality: 256 colors\n"
+            "Medium Quality: 128 colors\n"
+            "Low Quality: 64 colors\n"
+            "Min Quality: 32 colors"
+        )
+        self.gif_resolution = ComboBox()
+        self.gif_resolution.addItems(const.DefaultOptions["Resolution"])
+        self.gif_resolution.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Minimum,
+        )
         self.gif.stateChanged.connect(self.gif_quality.setEnabled)
+        self.gif.stateChanged.connect(self.gif_resolution.setEnabled)
         self.gif_layout = QtWidgets.QHBoxLayout()
         self.gif_layout.setSpacing(12)
         self.gif_layout.setStretch(1, 1)
         self.gif_layout.addWidget(self.gif)
         self.gif_layout.addWidget(self.gif_quality)
+        self.gif_layout.addWidget(self.gif_resolution)
 
         self.update_keep_original = lambda _: (
             self.keep_original.setVisible(self.mp4.isChecked() or self.gif.isChecked()),
@@ -1162,8 +1235,10 @@ class Options(QtWidgets.QWidget):
             ),
             "mp4": self.mp4.isChecked(),
             "mp4_quality": self.mp4_quality.currentText(),
+            "mp4_resolution": self.mp4_resolution.currentText(),
             "gif": self.gif.isChecked(),
             "gif_quality": self.gif_quality.currentText(),
+            "gif_resolution": self.gif_resolution.currentText(),
             "sg": self.sg.isChecked(),
             "sg_comment": self.sg_comment.text(),
             "bg": self.bg.isChecked(),
