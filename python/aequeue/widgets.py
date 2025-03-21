@@ -1221,6 +1221,7 @@ class Options(QtWidgets.QWidget):
         self.layout.addRow(Label("Output MP4"), self.mp4_layout)
         self.layout.addRow(Label("Output GIF"), self.gif_layout)
         self.layout.addRow(Label("Upload to ShotGrid"), self.sg_layout)
+        # Comment out next line to disable BG Rendering.
         # self.layout.addRow(Label("BG Render"), self.bg_layout)
         self.setLayout(self.layout)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
