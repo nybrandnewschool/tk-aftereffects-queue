@@ -41,7 +41,7 @@ DefaultOptions = {
     "Resolution": [
         "Full",
         "Half",
-        "Quater",
+        "Quarter",
         "1920",
         "1080",
         "960",

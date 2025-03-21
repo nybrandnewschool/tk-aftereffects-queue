@@ -52,7 +52,10 @@ class EncodeMP4(Task):
             preset = "veryfast"
 
         scale_filter = get_scale_filter(self.resolution)
-        scale = ("", f"-vf {scale_filter}")[bool(scale_filter)]
+        if scale_filter:
+            scale = ("-vf", scale_filter)
+        else:
+            scale = ("",)
 
         if src_file_info["is_sequence"]:
             padding = "%0{}d".format(src_file_info["padding"])
@@ -66,8 +69,9 @@ class EncodeMP4(Task):
                 '-i', src_file,
                 '-vcodec', 'libx264',
                 '-pix_fmt', 'yuv420p',
-                scale,
+                *scale,
                 "-profile:v", "main",
+                "-g", "1",
                 "-vendor", "apl0",
                 "-tune", "stillimage",
                 '-crf', crf,
@@ -81,8 +85,9 @@ class EncodeMP4(Task):
                 "-acodec", "aac",
                 "-vcodec", "libx264",
                 "-pix_fmt", "yuv420p",
-                scale,
+                *scale,
                 "-profile:v", "main",
+                "-g", "1",
                 "-vendor", "apl0",
                 "-tune", "stillimage",
                 "-crf", crf,
@@ -169,7 +174,7 @@ def get_gif_color_depth(quality="High Quality"):
         "High Quality": 256,
         "Medium Quality": 128,
         "Low Quality": 64,
-        "Minimal Quality": 32,
+        "Min Quality": 32,
     }[quality]
 
 
