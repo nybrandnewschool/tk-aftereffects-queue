@@ -29,3 +29,23 @@ Failed = "failed"  # Task has failed - usually raising an exception.
 Success = "success"  # Task has finished running successfully.
 StatusList = [Waiting, Running, Cancelled, Revoked, Failed, Success]
 DoneList = [Done, Cancelled, Failed, Revoked, Success]
+
+# Default Options
+DefaultOptions = {
+    "Quality": [
+        "High Quality",
+        "Medium Quality",
+        "Low Quality",
+        "Min Quality",
+    ],
+    "Resolution": [
+        "Full",
+        "Half",
+        "Quater",
+        "1920",
+        "1080",
+        "960",
+        "720",
+        "360",
+    ],
+}

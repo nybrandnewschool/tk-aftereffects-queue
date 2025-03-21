@@ -88,8 +88,14 @@ class AEQueueApplication(sgtk.platform.Application):
     def get_default_mp4_quality(self):
         return self.get_setting("default_mp4_quality")
 
+    def get_default_mp4_resolution(self):
+        return self.get_setting("default_mp4_resolution")
+
     def get_default_gif_quality(self):
         return self.get_setting("default_gif_quality")
+
+    def get_default_gif_resolution(self):
+        return self.get_setting("default_gif_resolution")
 
     def get_default_keep_original(self):
         return True
