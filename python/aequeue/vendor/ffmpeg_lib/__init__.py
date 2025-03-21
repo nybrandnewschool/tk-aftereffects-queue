@@ -116,8 +116,9 @@ def encode(*args, **kwargs):
         CREATE_NO_WINDOW = 0x08000000
         platform_kwargs['creationflags'] = CREATE_NO_WINDOW
 
-    # Fill cli arguments
+    # Fill cli arguments and filter invalid / empty args
     cmd = [ffmpeg] + list(args)
+    cmd = [arg for arg in cmd if arg not in ("", None)]
 
     # Create subprocess
     proc = subprocess.Popen(
