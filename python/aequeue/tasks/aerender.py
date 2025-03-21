@@ -47,20 +47,20 @@ class AERenderComp(SyncTask):
         except Exception:
             raise RuntimeError("Failed to create output folder %s" % self.output_folder)
 
-        # Apply file info
+        # Apply render setting template
+        self.log.debug("Applying Render Setting [%s]", self.render_settings)
+        rq_item.applyTemplate(self.render_settings)
+        self.set_status(const.Running, 20)
+
+        # Apply output module template
+        self.log.debug("Applying Output Module [%s]", self.output_module)
+        om.applyTemplate(self.output_module)
+        self.set_status(const.Running, 40)
+
+        # Apply output path
         self.log.debug("Setting Full Flat Path: %s" % self.output_path)
         app.engine.set_file_info(om, {"Full Flat Path": self.output_path})
         self.log.debug("Output File Info: %s", om.getSetting("Output File Info"))
-
-        self.log.debug("Rendering [%s]", self.output_module)
-        self.set_status(const.Running, 20)
-
-        # Apply render setting
-        rq_item.applyTemplate(self.render_settings)
-        self.set_status(const.Running, 40)
-
-        # Apply output module template
-        om.applyTemplate(self.output_module)
         self.set_status(const.Running, 60)
 
         # Check for cancelled before rendering - once started we can't cancel.
