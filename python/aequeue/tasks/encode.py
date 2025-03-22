@@ -47,8 +47,11 @@ class EncodeMP4(Task):
         elif self.quality == "Medium Quality":
             crf = "22"
             preset = "medium"
-        else:
+        elif self.quality == "Low Quality":
             crf = "26"
+            preset = "veryfast"
+        else:
+            crf = "30"
             preset = "veryfast"
 
         scale_filter = get_scale_filter(self.resolution)
@@ -143,7 +146,12 @@ class EncodeGIF(Task):
         fps = self.framerate
         scale_filter = get_scale_filter(self.resolution)
         scale = ("", f"{scale_filter}:flags=lanczos,")[bool(scale_filter)]
-        colors = get_gif_color_depth(self.quality)
+        colors = {
+            "High Quality": 256,
+            "Medium Quality": 128,
+            "Low Quality": 64,
+            "Min Quality": 32,
+        }.get(self.quality)
         dither = ""  # 'dither=bayer:bayer_scale=3:'
         filters = [
             f"[0:v] fps={fps},{scale}split [a][b]",
@@ -167,15 +175,6 @@ class EncodeGIF(Task):
             on_done=self.on_done,
         )
         return self.dst_file
-
-
-def get_gif_color_depth(quality="High Quality"):
-    return {
-        "High Quality": 256,
-        "Medium Quality": 128,
-        "Low Quality": 64,
-        "Min Quality": 32,
-    }[quality]
 
 
 def get_scale_filter(resolution="Full"):
