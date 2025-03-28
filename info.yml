@@ -17,49 +17,60 @@ configuration:
   template_render_area:
     type: str
     default_value: ae_shot_renders
-    description: A template which locates the root folder for comp renders.
-                 This is the folder where renders will be written to and
-                 publishes will be generated pointing to those renders.
+    description: |
+      A template which locates the root folder for comp renders.
+      This is the folder where renders will be written to and
+      publishes will be generated pointing to those renders.
     allows_empty: False
   template_review_area:
     type: str
     default_value: ae_shot_review
-    description: Template pointing to a review folder. All encoded renders
-                 will be copied into this folder before uploading to SG for
-                 review.
+    description: |
+      Template pointing to a review folder. All encoded renders
+      will be copied into this folder before uploading to SG for
+      review.
     allows_empty: False
   copy_to_review_area:
     type: bool
     default_value: False
-    description: A flag that determines whether or not Encoded renders will
-                 be copied to the template_review_area before uploading to
-                 SG for review.
+    description: |
+      A flag that determines whether or not Encoded renders will
+      be copied to the template_review_area before uploading to
+      SG for review.
   move_to_review_area:
     type: bool
     default_value: True
-    description: A flag that determines whether or not Encoded renders will
-                 be moved to the template_review_area before uploading to
-                 SG for review. This takes precedence over the copy_to_review_area
-                 option.
+    description: |
+      A flag that determines whether or not Encoded renders will
+      be moved to the template_review_area before uploading to
+      SG for review. This takes precedence over the copy_to_review_area
+      option.
   publish_on_upload:
     type: bool
     default_value: False
-    description: When True, create a Publish in ShotGrid for the rendered media. Link
+    description: |
+      When True, create a Publish in ShotGrid for the rendered media. Link
       the Version created in ShotGrid to the Publish. Publish only occurs when the
       "Upload to ShotGrid" checkbox is enabled in the UI.
   command_name:
     type: str
     default_value: Render Queue...
     description: The name of the command as displayed in the Adobe Panel.
+  async_render:
+    type: bool
+    default_value: False
+    description: |
+      When enabled, render AE Comps asynchronously. This will prevent the UI from
+      locking up while rendering, but may be less stable.
   default_mp4_quality:
     type: str
-    default_value: High Quality
+    default_value: Medium Quality
     description: |
       Default quality for ffmpeg encoding of mp4s. One of:
-      High Quality = -vcodec libx264 -crf 26 -preset veryslow
+      High Quality = -vcodec libx264 -crf 18 -preset veryslow
       Medium Quality = -vcodec libx264 -crf 22 -preset medium
-      Low Quality = -vcodec libx264 -crf 18 -preset veryfast
-      Min Quality = -vcodec libx264 -crf 9 -preset veryfast
+      Low Quality = -vcodec libx264 -crf 26 -preset veryfast
+      Min Quality = -vcodec libx264 -crf 30 -preset veryfast
   default_mp4_resolution:
     type: str
     default_value: "Full"
@@ -75,7 +86,7 @@ configuration:
       360 = Max resolution
   default_gif_quality:
     type: str
-    default_value: Medium Quality
+    default_value: Low Quality
     description: |
       Default quality for ffmpeg encoding of gifs. One of:
       High Quality = 256 colors
@@ -99,19 +110,21 @@ configuration:
     type: list
     values:
       type: str
-    default_value: ['Best Settings']
-    description: A list of default render settings in order of preference. The first
-                 existing render setting will be used as the default in the RQ UI.
+    default_value: ["Best Settings"]
+    description: |
+      A list of default render settings in order of preference. The first
+      existing render setting will be used as the default in the RQ UI.
   default_output_module:
     type: list
     values:
       type: str
-    default_value: ['Lossless with Alpha']
-    description: A list of default output modules in order of preference. The first
-                 existing output module will be used as the default in the RQ UI.
+    default_value: ["Lossless with Alpha"]
+    description: |
+      A list of default output modules in order of preference. The first
+      existing output module will be used as the default in the RQ UI.
   send_report_hook:
     type: hook
-    default_value: '{self}/default_send_report_hook.py'
+    default_value: "{self}/default_send_report_hook.py"
     description: |
       Hook that is responsible for sending reports to the people who need to know!
       You can use this hook to send an email, create a Ticket in Jira, create a Github
@@ -141,4 +154,4 @@ requires_shotgun_version:
 requires_core_version: "v0.19.18"
 requires_engine_version:
 frameworks:
-  - {"name": "tk-framework-adobe", "version": "v1.x.x"}
+  - { "name": "tk-framework-adobe", "version": "v1.x.x" }

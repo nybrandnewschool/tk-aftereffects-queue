@@ -2,7 +2,7 @@ import os
 
 from .. import const
 from ..render import AERenderSubprocess
-from .core import Task, SyncTask, fit
+from .core import SyncTask, Task, fit
 
 
 class AERenderFailed(Exception):
@@ -22,6 +22,7 @@ class AERenderComp(SyncTask):
         *args,
         **kwargs,
     ):
+        self.async_render = kwargs.pop("async_render", False)
         self.project = project
         self.comp = comp
         self.output_module = output_module
@@ -44,8 +45,10 @@ class AERenderComp(SyncTask):
         # Ensure output folder exists
         try:
             os.makedirs(self.output_folder, exist_ok=True)
-        except Exception:
-            raise RuntimeError("Failed to create output folder %s" % self.output_folder)
+        except Exception as e:
+            raise RuntimeError(
+                "Failed to create output folder %s" % self.output_folder
+            ) from e
 
         # Apply render setting template
         self.log.debug("Applying Render Setting [%s]", self.render_settings)
@@ -67,7 +70,11 @@ class AERenderComp(SyncTask):
         if self.status_request == const.Cancelled:
             return self.accept(const.Cancelled)
 
-        success = app.engine.render_queue_item(rq_item)
+        if self.async_render:
+            success = app.engine.render_queue_item_async(rq_item)
+        else:
+            success = app.engine.render_queue_item(rq_item)
+
         if not success:
             raise AERenderFailed("Failed to render queue item: %s" % self.comp)
 

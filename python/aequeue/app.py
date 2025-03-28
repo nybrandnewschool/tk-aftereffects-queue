@@ -111,7 +111,9 @@ class Application(QtCore.QObject):
             if default_module:
                 self.ui.options.module.setCurrentText(default_module)
 
-            default_settings = self.tk_app.get_default_render_settings(existing_settings)
+            default_settings = self.tk_app.get_default_render_settings(
+                existing_settings
+            )
             if default_settings:
                 self.ui.options.settings.setCurrentText(default_settings)
 
@@ -129,6 +131,9 @@ class Application(QtCore.QObject):
 
             default_keep_original = self.tk_app.get_default_keep_original()
             self.ui.options.keep_original.setChecked(default_keep_original)
+
+            async_render = self.tk_app.get_async_render()
+            self.ui.options.async_render.setChecked(async_render)
 
             # Update flag so we don't update them next time we load options.
             self._defaults_loaded = True
@@ -349,12 +354,16 @@ class Application(QtCore.QObject):
         with Flow(item) as flow:
             # Add main render task
             RenderComp = (AERenderComp, BackgroundAERenderComp)[options.bg]
+            extra_render_kwargs = {}
+            if not options.bg:
+                extra_render_kwargs["async_render"] = options.async_render
             render_comp = RenderComp(
                 project=project,
                 comp=item,
                 output_module=options.module,
                 render_settings=options.settings,
                 output_path=output_path,
+                **extra_render_kwargs,
             )
             render_comp.pool = render_pool
 
@@ -474,7 +483,7 @@ class Application(QtCore.QObject):
     def generate_bg_project_path(self, render_id, project_path):
         dirname, basename = os.path.split(project_path)
         filename, extension = os.path.splitext(basename)
-        stamp = f'{render_id}_{datetime.now().strftime("%Y-%m-%d_%H-%M")}'
+        stamp = f"{render_id}_{datetime.now().strftime('%Y-%m-%d_%H-%M')}"
         return os.path.join(dirname, "aeq", f"{filename}_{stamp}{extension}")
 
     def show_context_menu(self, point):

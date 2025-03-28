@@ -85,6 +85,9 @@ class AEQueueApplication(sgtk.platform.Application):
 
         return normalize(self.disk_location, path)
 
+    def get_async_render(self):
+        return self.get_setting("async_render")
+
     def get_default_mp4_quality(self):
         return self.get_setting("default_mp4_quality")
 

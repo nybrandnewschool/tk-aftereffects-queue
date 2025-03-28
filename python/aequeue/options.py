@@ -1,6 +1,5 @@
 from collections import namedtuple
 
-
 RenderOptionsType = namedtuple(
     "RenderOptions",
     [
@@ -17,6 +16,7 @@ RenderOptionsType = namedtuple(
         "sg_comment",
         "bg",
         "bg_threads",
+        "async_render",
     ],
 )
 
