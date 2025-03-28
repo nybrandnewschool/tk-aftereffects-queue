@@ -193,19 +193,15 @@ class AEQueueApplication(sgtk.platform.Application):
         else:
             current_task_name = None
 
-        workfiles_app = self.engine.apps.get("tk-multi-workfiles2")
-        template_name = workfiles_app.settings.get("template_work")
-        template = self.engine.sgtk.templates[template_name]
-        fields = template.get_fields(self.engine.project_path)
-
         try:
             project_ctx = self.engine.sgtk.context_from_path(
                 self.engine.project_path,
                 current_ctx,
             )
         except Exception:
-            return False, "Can't determine Context. Please use ShotGrid Open/Save..."
+            return False, "Can't find Context for AEP."
 
+        # Ensure our new project_ctx has a Task.
         if project_ctx.step and not project_ctx.task:
             # Lookup tasks
             tasks = self.shotgun.find(
@@ -217,7 +213,7 @@ class AEQueueApplication(sgtk.platform.Application):
                 fields=["content"],
             )
             if not tasks:
-                return False, "Can't determine Task. Please use ShotGrid Open/Save..."
+                return False, "Can't find Task for AEP."
 
             for task in tasks:
                 if task["content"] == current_task_name:
@@ -227,22 +223,20 @@ class AEQueueApplication(sgtk.platform.Application):
 
             project_ctx = self.engine.sgtk.context_from_entity("Task", task["id"])
 
+        # Compare project_ctx to current_ctx
         pctx = project_ctx.to_dict()
         cctx = current_ctx.to_dict()
         should_change_context = False
         for field in ["project", "entity", "step", "task"]:
-            current_id = pctx.get(field, {}).get("id")
-            other_id = cctx.get(field, {}).get("id")
-            if current_id != other_id and other_id is not None:
+            current_id = (cctx[field] or {}).get("id")
+            other_id = (pctx[field] or {}).get("id")
+            if other_id and other_id != current_id:
                 should_change_context = True
 
-        if should_change_context:
-            optimal_ctx = project_ctx
-        else:
-            optimal_ctx = current_ctx
+        optimal_ctx = (current_ctx, project_ctx)[should_change_context]
 
         if not optimal_ctx.task:
-            return False, "Can't determine Task. Please use ShotGrid Open/Save..."
+            return False, "Incomplete Context for AEP."
 
         if should_change_context:
             self._reset_on_context_change = reset

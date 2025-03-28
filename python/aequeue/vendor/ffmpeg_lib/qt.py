@@ -6,7 +6,7 @@ import os
 from . import icon, watch
 
 # Third party imports
-from ..Qt import QtCore, QtWidgets, QtGui
+from ..qtpy import QtCore, QtWidgets, QtGui
 
 
 class FfmpegErrorDialog(QtWidgets.QDialog):
