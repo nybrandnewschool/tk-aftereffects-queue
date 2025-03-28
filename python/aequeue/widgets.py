@@ -64,8 +64,8 @@ class Theme:
     }
     icons = resources.get_icon_variables()
     variables = {
-        "h1": ('font-family: "Roboto";\n' "font-size: 14px;\n"),
-        "p": ('font-family: "Roboto";\n' "font-size: 12px;\n"),
+        "h1": ('font-family: "Roboto";\nfont-size: 14px;\n'),
+        "p": ('font-family: "Roboto";\nfont-size: 12px;\n'),
         "border": "border: 1px solid $on_surface",
         "border_highlight": "border: 1px solid $on_surface_highlight",
         "border_up_button": "border-width: 1px 1px 0px 0px",
@@ -1134,10 +1134,10 @@ class Options(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Minimum,
         )
         self.mp4_quality.setToolTip(
-            "High Quality: -crf 26 -preset veryslow\n"
+            "High Quality: -crf 18 -preset veryslow\n"
             "Medium Quality: -crf 22 -preset medium\n"
-            "Low Quality: -crf 18 -preset veryfast\n"
-            "Min Quality: -crf 9 -preset veryfast"
+            "Low Quality: -crf 26 -preset veryfast\n"
+            "Min Quality: -crf 30 -preset veryfast"
         )
         self.mp4_resolution = ComboBox()
         self.mp4_resolution.addItems(const.DefaultOptions["Resolution"])
@@ -1211,6 +1211,21 @@ class Options(QtWidgets.QWidget):
         self.bg_layout.addWidget(self.bg)
         self.bg_layout.addWidget(self.bg_threads)
 
+        async_tip = (
+            "New render method that will not freeze AE while rendering.\n"
+            "AE render queue progress bar will work as well.\n"
+            "Please try this feature out."
+        )
+        self.async_render = CheckBox()
+        self.async_render.setToolTip(async_tip)
+        self.async_note = Label("Experimental!")
+        self.async_note.setToolTip(async_tip)
+        self.async_layout = QtWidgets.QHBoxLayout()
+        self.async_layout.setSpacing(12)
+        self.async_layout.setStretch(1, 1)
+        self.async_layout.addWidget(self.async_render)
+        self.async_layout.addWidget(self.async_note)
+
         self.layout = QtWidgets.QFormLayout()
         self.layout.setContentsMargins(20, 4, 20, 4)
         self.layout.setVerticalSpacing(12)
@@ -1221,6 +1236,8 @@ class Options(QtWidgets.QWidget):
         self.layout.addRow(Label("Output MP4"), self.mp4_layout)
         self.layout.addRow(Label("Output GIF"), self.gif_layout)
         self.layout.addRow(Label("Upload to ShotGrid"), self.sg_layout)
+        # Comment out next line to disable Async Rendering option.
+        self.layout.addRow(Label("Async Render"), self.async_layout)
         # Comment out next line to disable BG Rendering.
         # self.layout.addRow(Label("BG Render"), self.bg_layout)
         self.setLayout(self.layout)
@@ -1244,6 +1261,7 @@ class Options(QtWidgets.QWidget):
             "sg_comment": self.sg_comment.text(),
             "bg": self.bg.isChecked(),
             "bg_threads": self.bg_threads.value(),
+            "async_render": self.async_render.isChecked(),
         }
 
     def set(self, **options):
@@ -1571,6 +1589,7 @@ class Window(QtWidgets.QDialog):
             sg=True,
             bg=False,
             bg_threads=4,
+            async_render=False,
         )
         self.options_header = SectionHeader("OPTIONS")
         self.options_header.right.addWidget(self.status_indicator)
