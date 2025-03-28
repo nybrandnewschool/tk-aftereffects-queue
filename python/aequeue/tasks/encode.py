@@ -1,6 +1,3 @@
-import os
-import shutil
-
 from .. import const
 from ..vendor import ffmpeg_lib
 from .core import Task
@@ -115,7 +112,7 @@ class EncodeGIF(Task):
         self.dst_file = dst_file
         self.quality = quality
         self.resolution = resolution
-        self.framerate = framerate
+        self.framerate = int(framerate)
         super(EncodeGIF, self).__init__(*args, **kwargs)
 
     def on_start(self, proc):

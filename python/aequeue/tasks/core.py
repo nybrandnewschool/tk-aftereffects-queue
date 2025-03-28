@@ -5,11 +5,11 @@ import threading
 import traceback
 import uuid
 from collections import defaultdict, deque
+from itertools import zip_longest
 from queue import Queue
 
 from .. import const
 from ..vendor.qtpy import QtCore, QtWidgets
-
 
 __all__ = [
     "call_in_main",
@@ -589,11 +589,12 @@ def generate_html_report(runner):
         ),
     }
 
-    def format_record(record):
+    def format_record(record, next_record):
         formatter = formatters[record.type]
         record.branch = "├"
-        if record.type == "task" and record.task_status in const.DoneList:
-            record.branch = "└"
+        if record.type == "task":
+            if not next_record or next_record.type != "task":
+                record.branch = "└"
         lines = []
         # Apply base formatting
         if record.exc_info:
@@ -631,8 +632,9 @@ def generate_html_report(runner):
         report.append(
             f'<pre style="font-family: Roboto; font-size: 14px;color: #DDDDDD;">  {flow.name}</pre>'
         )
-        for record in flow.log_records:
-            report.extend(format_record(record))
+        records = list(flow.log_records)
+        for record, next_record in zip_longest(records, records[1:]):
+            report.extend(format_record(record, next_record))
 
     return "\n".join(report)
 
