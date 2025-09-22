@@ -1,2 +1,2 @@
-PySide2
-Qt.py
+PySide6
+qtpy

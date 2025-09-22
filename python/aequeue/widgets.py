@@ -1319,7 +1319,7 @@ class Movie(QtWidgets.QLabel):
     def set(self, file_path):
         """Sets the current movie and clears the movie queue."""
 
-        if self.movie.state() is self.movie.Running:
+        if self.movie.state() is QtGui.QMovie.Running:
             self.movie.stop()
 
         self.movie_queue.clear()
